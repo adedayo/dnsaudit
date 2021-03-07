@@ -3,6 +3,6 @@
 ![GitHub release](https://img.shields.io/github/release/adedayo/dnsaudit.svg)
 [![GitHub license](https://img.shields.io/github/license/adedayo/dnsaudit.svg)](https://github.com/adedayo/dnsaudit/blob/master/LICENSE)
 
-# DMS Audit
+# DNS Audit
 
 dnsaudit is a set of utilities for interrogating the DNS
