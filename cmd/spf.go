@@ -31,38 +31,33 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 
-	dns "github.com/adedayo/dnsaudit/pkg"
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
 )
 
 // spfCmd represents the spf command
 var spfCmd = &cobra.Command{
-	Use:   "spf",
-	Short: "Obtain the Sender Policy Framework information for a domain.",
-	Long:  `Obtain the Sender Policy Framework information for a domain.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 1 {
-			if spf, err := dns.LookupSPF(args[0]); err == nil {
-				fmt.Printf("%#v\n", spf)
-			}
-		} else {
-			cmd.Usage()
+	Use:   "spf [domain]",
+	Short: "Retrieve the Sender Policy Framework (SPF) record for a domain.",
+	Long: `Query the SPF TXT record for a domain to determine which mail servers
+are permitted to send email on its behalf. Useful for detecting mail spoofing risk.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		spf, err := scanner.LookupSPF(ctx, args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
 		}
+		fmt.Println(spf)
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(spfCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// spfCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// spfCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

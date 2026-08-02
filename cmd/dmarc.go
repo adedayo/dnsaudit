@@ -31,38 +31,34 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"os"
 
-	dns "github.com/adedayo/dnsaudit/pkg"
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
 )
 
 // dmarcCmd represents the dmarc command
 var dmarcCmd = &cobra.Command{
-	Use:   "dmarc",
-	Short: "Obtain the DMARC configuration for a doman.",
-	Long:  `Obtain the DMARC configuration for a doman.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 1 {
-			if dmarc, err := dns.LookupDMARC(args[0]); err == nil {
-				fmt.Printf("%#v\n", dmarc)
-			}
-		} else {
-			cmd.Usage()
+	Use:   "dmarc [domain]",
+	Short: "Retrieve the DMARC policy for a domain.",
+	Long: `Query the DMARC TXT record for a domain (_dmarc.<domain>) and return the
+effective policy (reject, quarantine, or none). A missing or weak DMARC policy
+exposes the domain to email spoofing and phishing attacks.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+		policy, err := scanner.LookupDMARC(ctx, args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
 		}
+		fmt.Printf("DMARC policy: %s\n", policy)
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(dmarcCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// dmarcCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// dmarcCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
