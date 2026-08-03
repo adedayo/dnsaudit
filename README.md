@@ -5,13 +5,30 @@
 
 # DNS Audit
 
-`dnsaudit` is a set of utilities for auditing security posture by interrogating
-the DNS. It provides both a command-line interface and a reusable Go library
-(`github.com/adedayo/dnsaudit/pkg/scanner`).
+**See what an attacker sees.** `dnsaudit` audits your external attack surface
+posture from public DNS records — no agents, no credentials, and nothing
+touching the systems being assessed.
+
+Reconnaissance starts with DNS, because DNS answers everybody. Before an
+attacker sends a single packet at you, it tells them which hosts you expose,
+whose infrastructure they sit on, whether mail claiming to be from you can be
+forged, whether your delegation can be tampered with, and which names your
+certificates have already made public. `dnsaudit` asks the same questions
+first, and reports what an attacker would find, ranked by what it would cost
+you.
+
+It grades a domain A–F, explains every finding with the evidence behind it and
+the remediation that closes it, and emits JSON, NDJSON, CSV or SARIF for a
+pipeline.
 
 It runs on **Linux, macOS and Windows** — resolver configuration is discovered in
 a platform-native way with graceful fallbacks, so no `/etc/resolv.conf` is
 required.
+
+> Some checks reach beyond DNS to corroborate what DNS implies: Certificate
+> Transparency logs, cloud provider range data, and the HTTPS policy files that
+> MTA-STS and subdomain takeover checks depend on. All of it is public, and
+> every check declares its egress — see [Network egress](#network-egress).
 
 ## Install
 

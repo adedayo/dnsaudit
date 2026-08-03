@@ -58,10 +58,8 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "dnsaudit",
 	Short: "DNS security auditing tool for analysing your external attack surface.",
-	Long: `dnsaudit analyses DNS records to identify security posture issues
-across your domains. It helps security teams and CISOs understand their
-external attack surface by auditing records such as SPF, DKIM, DMARC, DANE,
-CAA, DNSSEC, PTR, DNSBL listings, and more.`,
+	// Long is assembled in Execute, because the banner carries the version and
+	// that is only resolved at run time.
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -71,6 +69,12 @@ CAA, DNSSEC, PTR, DNSBL listings, and more.`,
 func Execute() {
 	rootCmd.Version = versionString()
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
+	rootCmd.Long = banner() + `
+
+dnsaudit analyses DNS records to identify security posture issues
+across your domains. It helps security teams and CISOs understand their
+external attack surface by auditing records such as SPF, DKIM, DMARC, DANE,
+CAA, DNSSEC, PTR, DNSBL listings, and more.`
 
 	if err := rootCmd.Execute(); err != nil {
 		exit(err)

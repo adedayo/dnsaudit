@@ -80,6 +80,21 @@ func versionString() string {
 		v, c, d, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
 
+// banner returns the preamble shown at the top of `dnsaudit --help`: what the
+// tool is for, which version is running and who wrote it.
+//
+// The version is resolved at run time rather than written into a constant, so
+// that a user reporting a problem from the help output is telling us about the
+// binary they actually have.
+func banner() string {
+	v, _, _ := buildInfo()
+	return fmt.Sprintf(`See what an attacker sees. Use dnsaudit to audit your external attack surface posture from public DNS records.
+
+	Version: %s
+
+	Author: Dr. Adedayo Adetoye (Dayo) <https://github.com/adedayo>`, v)
+}
+
 // versionCmd prints detailed build information.
 var versionCmd = &cobra.Command{
 	Use:   "version",
