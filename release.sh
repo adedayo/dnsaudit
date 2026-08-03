@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 #
-# release.sh - Verify, commit, tag and release a new version.
+# release.sh - Verify, commit, tag and push a new version.
 #
 # All quality gates live in ./pre-release.sh, which is run first. Nothing is
 # committed, tagged or pushed unless every check passes.
+#
+# This script uses git and nothing else. Building and publishing the release
+# artefacts is CI's job, triggered by the tag push (see
+# .github/workflows/release.yml).
 #
 # Usage:
 #   ./release.sh v1.2.3            # release a specific version
@@ -47,7 +51,10 @@ run() {
 }
 
 usage() {
-  sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+  # Print the header comment block, stopping at the first line that is not a
+  # comment. Slicing by hard-coded line numbers silently truncates the help
+  # whenever the header changes length.
+  awk 'NR >= 3 { if (!/^#/) exit; sub(/^# ?/, ""); print }' "$0"
   exit 1
 }
 
@@ -153,21 +160,21 @@ ok "Pushed ${BRANCH} and ${VERSION} to ${REMOTE}"
 # ---------------------------------------------------------------------------
 info "Publish"
 # ---------------------------------------------------------------------------
-if command -v goreleaser >/dev/null 2>&1 && [[ -f .goreleaser.yml || -f .goreleaser.yaml ]]; then
-  GORELEASER_ARGS=(release --clean)
-  # SBOM generation requires syft; skip it locally rather than failing the
-  # release. CI installs syft, so released artefacts still get an SBOM.
-  if ! command -v syft >/dev/null 2>&1; then
-    warn "syft not found; skipping SBOM generation for this local release"
-    GORELEASER_ARGS+=(--skip=sbom)
-  fi
-  run goreleaser "${GORELEASER_ARGS[@]}"
-  ok "goreleaser finished"
-elif command -v gh >/dev/null 2>&1; then
-  run gh release create "$VERSION" --title "$VERSION" --generate-notes
-  ok "GitHub release created via gh"
-else
-  warn "Neither goreleaser (with config) nor gh found; CI should handle publication on tag push."
-fi
+# Publication is CI's job, triggered by the tag push above (see
+# .github/workflows/release.yml). This script deliberately uses nothing but
+# git.
+#
+# It used to fall back to `gh release create` when goreleaser was absent
+# locally, which meant a machine with gh installed published the release
+# twice: once from here and once from CI on the same tag. The CI build is
+# also the better of the two, because it installs syft and so the artefacts
+# carry an SBOM that a local release would have skipped.
+#
+# A local publish would also depend on whatever toolchain happened to be on
+# the releaser's machine, so the artefacts would differ between maintainers.
+ok "Tag pushed; CI will build and publish the release"
+printf '    workflow: .github/workflows/release.yml\n'
+printf '    progress: https://github.com/adedayo/dnsaudit/actions\n'
+printf '    release:  https://github.com/adedayo/dnsaudit/releases/tag/%s\n' "$VERSION"
 
-printf '\n%s%s %s released.%s\n\n' "${GREEN}${BOLD}" "✓" "$VERSION" "$RESET"
+printf '\n%s%s %s tagged and pushed.%s\n\n' "${GREEN}${BOLD}" "✓" "$VERSION" "$RESET"
