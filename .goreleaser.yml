@@ -91,15 +91,22 @@ homebrew_casks:
       email: dayo.dev@gmail.com
     commit_msg_template: "dnsaudit: update to {{ .Tag }}"
     # The binaries are not notarised — Apple charges yearly for that — so
-    # macOS would quarantine them and report the download as damaged. Clearing
-    # the attribute on install is Homebrew's documented workaround for
-    # unsigned casks.
+    # macOS quarantines them and reports the download as damaged. This is not
+    # hypothetical: checkmate-app's cask has no such hook, and its users had
+    # to run xattr by hand. Clearing the attribute on install is Homebrew's
+    # documented workaround for unsigned casks.
     hooks:
       post:
         install: |
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/dnsaudit"]
           end
+    # `brew uninstall --zap` should leave nothing behind. The cache holds
+    # provider ranges and Certificate Transparency results, not configuration,
+    # so removing it costs the user only a re-fetch.
+    zap:
+      trash:
+        - "~/Library/Caches/dnsaudit"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
