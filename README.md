@@ -24,7 +24,7 @@ required.
 | `mtasts <domain>` | MTA-STS TXT record, plus the policy file when findings are requested (`--no-network` to skip) |
 | `tlsrpt <domain>` | SMTP TLS Reporting (`_smtp._tls`) record |
 | `bimi <domain>` | Brand Indicators for Message Identification (`default._bimi`) |
-| `dnssec <domain>` | DNSKEY presence (`enabled` / `not found`) |
+| `dnssec <domain>` | DNSSEC chain of trust: DNSKEY, parent DS, algorithms, signature expiry and denial of existence |
 | `nssec <domain>` | NSEC/NSEC3 denial-of-existence records |
 | `smtp-dane <domain>` | TLSA records at `_25._tcp` |
 | `https-dane <domain>` | TLSA records at `_443._tcp` |
@@ -136,6 +136,100 @@ dnsaudit mtasts example.com --no-network  # TXT record only
 
 Checks declare their egress, so `dnsaudit audit --list-checks` shows the blast
 radius before you invoke anything.
+
+### Third-party services
+
+Two checks consult services that are neither yours nor the target's, and both
+say so in the report:
+
+- **`net`** attributes each address in the estate to a hosting provider, using
+  the published address ranges of AWS, Google Cloud, Cloudflare and Fastly. It
+  reports addresses that should never appear in public DNS — RFC 1918 space,
+  link-local, documentation ranges and the rest of the IANA special-purpose
+  registry — because publishing one discloses internal addressing to anyone who
+  asks. Azure is not covered: its published range file is versioned by a URL
+  that rotates weekly, so attribution would silently stop working whenever
+  Microsoft moved it. Azure-hosted addresses are reported as unattributed
+  rather than guessed at.
+
+- **`ct`** enumerates hostnames from Certificate Transparency logs via
+  Cert Spotter, falling back to crt.sh. Every name a certificate has ever been
+  issued for is already public; the check reads that record and asks which of
+  those names still resolve. It is **opt-in** — pass `--enumerate` — because it
+  queries a third party and because the answer is an inventory rather than a
+  verdict.
+
+```sh
+dnsaudit audit example.com --enumerate
+dnsaudit audit example.com --checks net --expect-jurisdiction GB,IE
+```
+
+`--expect-jurisdiction` names the countries you expect to be hosted in; anything
+outside them is reported. Jurisdiction is inferred from the provider's own
+region naming, which is an approximation of where data sits, not a legal
+determination.
+
+Names discovered by `ct` are fed to the other checks before they run, so a
+hostname found in a log is assessed for takeover and attribution like one you
+supplied yourself. Enumeration failing is never fatal: the run continues with
+the names you gave it.
+
+### Caches
+
+Provider ranges and CT results are cached under `~/.cache/dnsaudit`
+(`~/Library/Caches/dnsaudit` on macOS):
+
+| Data | Location | Lifetime |
+|---|---|---|
+| Provider address ranges | `netattr/` | 7 days |
+| Certificate Transparency results | `ct/` | 24 hours |
+
+If a source is unreachable and a stale entry exists, the stale entry is used and
+the report says when it was fetched — an old answer that discloses its age is
+more use than no answer at all. Delete the directory to force a refresh.
+
+## Authority to assess
+
+`dnsaudit` is an assessment tool, not an exploitation tool. It observes; it
+never claims a resource, guesses a credential or attempts to take anything over.
+Some checks nonetheless query the target's own nameservers directly rather than
+going through a resolver:
+
+- **`wild`** asks for three random, never-registered names, to establish
+  whether the zone answers for everything.
+- **`ns`** asks each authoritative server for the zone's SOA, to see which of
+  them answer authoritatively and whether they agree; and asks each one to
+  resolve a foreign name, to see whether it is an open resolver.
+- **`tko`** follows the alias chain of each host you name and checks whether
+  its target still exists. It never claims a resource, and it never guesses
+  hostnames — it assesses the apex plus whatever you supply:
+
+```sh
+dnsaudit audit example.com --checks tko --hosts www.example.com,assets.example.com
+dnsaudit audit example.com --checks tko --hosts-file hosts.txt
+```
+
+- **`axfr`** asks each authoritative server for a zone transfer. A correctly
+  configured server refuses, which is the answer being tested for. The
+  transferred zone is never written to disk and never appears in the report:
+  a finding records the record count and a five-record sample, enough to prove
+  the disclosure without republishing it. Because it is more intrusive than an
+  ordinary query, `axfr` is in the `surface` and `deep` profiles only, never in
+  the default.
+
+If no server answers at all, the check reports **`check_failed`**, not a clean
+result: a zone that could not be tested is never reported as one that passed.
+That happens more often than you might expect — some nameservers accept the TCP
+connection and answer ordinary queries but silently drop AXFR, and outbound
+TCP/53 is filtered on many corporate networks. The report lists every server
+tried and what each one said, so you can tell the difference.
+
+Each of these can be skipped individually with
+`--skip-checks wild,ns,tko,axfr`.
+
+**You are responsible for having authority to assess the domains you target.**
+Auditing a domain you neither own nor have written permission to test may be
+unlawful in your jurisdiction regardless of how gentle the queries are.
 
 ## Choosing resolvers
 
