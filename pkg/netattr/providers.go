@@ -89,6 +89,10 @@ type Set struct {
 	// Failed names the sources that could not be loaded, so a caller can say
 	// "coverage was incomplete" rather than "not in a cloud".
 	Failed []string
+	// Stale names the sources served from a cache entry older than CacheTTL,
+	// with the age, because the operator's endpoint could not be reached.
+	// Serving week-old data is defensible; doing so without saying is not.
+	Stale []string
 	// Fetched is when the data was obtained, which is what lets a reader judge
 	// how stale an attribution may be.
 	Fetched time.Time
@@ -152,10 +156,16 @@ func Load(ctx context.Context) (Set, error) {
 	byName := map[string]*Provider{}
 
 	for _, src := range providerSources {
-		data, err := fetchCached(ctx, src.url)
+		data, at, err := fetchCached(ctx, src.url)
 		if err != nil {
 			set.Failed = append(set.Failed, src.name+" ("+src.url+")")
 			continue
+		}
+		// A cache entry older than the TTL means the operator's endpoint could
+		// not be reached and last week's data is standing in for it.
+		if age := time.Since(at); age > CacheTTL {
+			set.Stale = append(set.Stale, fmt.Sprintf("%s (%s, cached %s)",
+				src.name, src.url, at.Format(time.RFC3339)))
 		}
 		ranges, err := src.parse(data)
 		if err != nil {

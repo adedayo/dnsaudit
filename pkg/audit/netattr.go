@@ -42,6 +42,7 @@ func fetchNetworkAttribution(
 		Estate:                map[string]bool{},
 		ExpectedJurisdictions: expect,
 		FailedSources:         set.Failed,
+		StaleSources:          set.Stale,
 	}
 
 	// The apex and the mail exchangers define the estate, so they are resolved

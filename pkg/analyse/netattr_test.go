@@ -132,6 +132,33 @@ func TestNetworkRecordsSayUnattributedWhenCoverageIsComplete(t *testing.T) {
 	assert.NotContains(t, records[0], "coverage incomplete")
 }
 
+// Stale data is usable — a prefix that moved last week is almost always still
+// announced by the same operator — so this is not a coverage gap and must not
+// be reported as one. It is disclosed because a reader comparing two runs
+// deserves to know the basis was not refreshed.
+func TestNetworkRecordsDiscloseStaleProviderData(t *testing.T) {
+	obs := NetworkObservation{
+		Domain: "example.com",
+		Hosts: []NetworkHost{{
+			Host: "www.example.com", Role: "apex",
+			Attributions: []netattr.Attribution{{
+				Address: netip.MustParseAddr("52.1.2.3"), Provider: "Amazon Web Services",
+			}},
+		}},
+		StaleSources: []string{"Amazon Web Services (https://ip-ranges.amazonaws.com/ip-ranges.json, cached 2026-07-20T00:00:00Z)"},
+	}
+
+	// Coverage is complete: the data loaded, it was simply not refreshed.
+	require.True(t, obs.CoverageComplete())
+
+	records := NetworkRecords(obs)
+	require.Len(t, records, 2)
+	assert.Contains(t, records[0], "could not be refreshed")
+	assert.Contains(t, records[0], "cached 2026-07-20")
+	// The attribution itself still stands.
+	assert.Contains(t, records[1], "(Amazon Web Services)")
+}
+
 func TestNetworkAttributionReportsHostOutsideTheEstate(t *testing.T) {
 	obs := NetworkObservation{
 		Domain: "example.com",

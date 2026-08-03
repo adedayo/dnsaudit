@@ -47,6 +47,12 @@ type NetworkObservation struct {
 	// and the report is indistinguishable from a domain that genuinely uses no
 	// third-party hosting. Silence would be a claim the data does not support.
 	FailedSources []string
+	// StaleSources names the publications served from a cache entry older than
+	// its lifetime, because the operator's endpoint could not be reached. The
+	// attributions are still usable — a prefix that moved last week is almost
+	// always still announced by the same operator — but a reader comparing two
+	// runs deserves to know the basis was not refreshed.
+	StaleSources []string
 }
 
 // CoverageComplete reports that every provider range publication loaded.
@@ -279,7 +285,7 @@ func sortedKeys(m map[string]bool) []string {
 // NetworkRecords renders what was attributed, so a reader sees the whole
 // picture rather than only the exceptions.
 func NetworkRecords(obs NetworkObservation) []string {
-	records := make([]string, 0, len(obs.Hosts)+len(obs.FailedSources))
+	records := make([]string, 0, len(obs.Hosts)+len(obs.FailedSources)+len(obs.StaleSources))
 
 	// The coverage warning comes first, because everything below it is
 	// conditional on it. A reader who sees "unattributed" without knowing a
@@ -287,6 +293,10 @@ func NetworkRecords(obs NetworkObservation) []string {
 	for _, src := range obs.FailedSources {
 		records = append(records,
 			"warning: provider ranges unavailable, attribution incomplete: "+src)
+	}
+	for _, src := range obs.StaleSources {
+		records = append(records,
+			"warning: provider ranges could not be refreshed, using cached data: "+src)
 	}
 
 	for _, h := range obs.Hosts {

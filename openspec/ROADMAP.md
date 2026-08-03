@@ -257,6 +257,18 @@ known provider, which is exactly what could not be established. Because text is
 the default format, the renderer promotes any record prefixed `warning:` to a
 `Warning:` line, so a degradation is not visible only to readers of JSON.
 
+Stale data is disclosed on the same principle but kept distinct from failure.
+When an endpoint is unreachable and a cache entry older than the seven-day
+lifetime exists, the entry is used — a prefix that moved last week is almost
+always still announced by the same operator, and discarding it would remove
+attributions that were correct yesterday — and the record names the source and
+the date it was cached. Coverage is complete in that case; only the refresh
+failed, and conflating the two would overstate the problem.
+
+`pkg/netattr` coverage went from 44% to 90% with these, `cache.go` having had
+none at all. It holds the lifetime, the atomic write and the stale fallback,
+which is the whole of what stands between the check and the network.
+
 This unblocked `DNSA-NS-002` and `DNSA-MX-005`. Both are reported at low
 confidence when every host sits under the audited domain itself: `google.com`'s
 `ns1`–`ns4.google.com` are vanity names that reveal nothing about the underlying

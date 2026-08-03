@@ -42,23 +42,27 @@ func CacheDir() (string, error) {
 // is down, attributing addresses from last week's data is far better than
 // attributing none — the alternative would silently reclassify every host as
 // unattributed and remove findings that were correct yesterday.
-func fetchCached(ctx context.Context, url string) ([]byte, error) {
+//
+// The returned time is when the data was obtained, so a caller can disclose the
+// age of what it is reasoning from. Serving week-old data is defensible; doing
+// so without saying is not.
+func fetchCached(ctx context.Context, url string) ([]byte, time.Time, error) {
 	path, pathErr := cachePath(url)
 
 	if pathErr == nil {
-		if data, err := readIfFresh(path, CacheTTL); err == nil {
-			return data, nil
+		if data, at, err := readIfFresh(path, CacheTTL); err == nil {
+			return data, at, nil
 		}
 	}
 
 	data, fetchErr := fetch(ctx, url)
 	if fetchErr != nil {
 		if pathErr == nil {
-			if stale, err := readIfFresh(path, 0); err == nil {
-				return stale, nil
+			if stale, at, err := readIfFresh(path, 0); err == nil {
+				return stale, at, nil
 			}
 		}
-		return nil, fetchErr
+		return nil, time.Time{}, fetchErr
 	}
 
 	if pathErr == nil {
@@ -66,20 +70,25 @@ func fetchCached(ctx context.Context, url string) ([]byte, error) {
 		// data is in hand and the only cost is fetching it again next time.
 		_ = writeCache(path, data)
 	}
-	return data, nil
+	return data, time.Now().UTC(), nil
 }
 
-// readIfFresh returns the cached file when it is younger than ttl. A ttl of
-// zero accepts any age, which is how the stale fallback is expressed.
-func readIfFresh(path string, ttl time.Duration) ([]byte, error) {
+// readIfFresh returns the cached file, and when it was written, if it is
+// younger than ttl. A ttl of zero accepts any age, which is how the stale
+// fallback is expressed.
+func readIfFresh(path string, ttl time.Duration) ([]byte, time.Time, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	if ttl > 0 && time.Since(info.ModTime()) > ttl {
-		return nil, fmt.Errorf("cache entry is stale")
+		return nil, time.Time{}, fmt.Errorf("cache entry is stale")
 	}
-	return os.ReadFile(path) //nolint:gosec // path is derived from a hash of a constant URL
+	data, err := os.ReadFile(path) //nolint:gosec // path is derived from a hash of a constant URL
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	return data, info.ModTime().UTC(), nil
 }
 
 func writeCache(path string, data []byte) error {
