@@ -97,6 +97,12 @@ and versioned (`summary.grade_version`) — an ungrounded score that silently
 changes between releases is worse than none, because trend lines become
 meaningless.
 
+Grading MUST weigh confidence as well as severity: a finding is demoted one
+severity band for medium confidence and two for low, before the thresholds are
+applied. A heuristic must not decide the grade as firmly as a proven protocol
+failure. The demotion applies to grading only — reported severities and the
+counts in `summary` MUST continue to describe what was found.
+
 ## Requirements
 1. Concurrency MUST be bounded and resolver-friendly: a global token bucket
    limits queries per second per resolver (`--query-rate`, default 50/s) to

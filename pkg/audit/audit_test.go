@@ -314,21 +314,81 @@ func TestClassifyError(t *testing.T) {
 	}
 }
 
+// graded builds n findings at a severity and confidence, for grading tests.
+func graded(n int, s finding.Severity, c finding.Confidence) []finding.Finding {
+	out := make([]finding.Finding, 0, n)
+	for range n {
+		out = append(out, finding.Finding{Severity: s, Confidence: c})
+	}
+	return out
+}
+
 func TestGrade(t *testing.T) {
-	assert.Equal(t, "A", Grade(finding.Summary{}))
-	assert.Equal(t, "A", Grade(finding.Summary{Info: 9, Total: 9}))
-	assert.Equal(t, "B", Grade(finding.Summary{Low: 1, Total: 1}))
-	assert.Equal(t, "B", Grade(finding.Summary{Medium: 1, Total: 1}))
-	assert.Equal(t, "C", Grade(finding.Summary{Medium: 3, Total: 3}))
-	assert.Equal(t, "D", Grade(finding.Summary{High: 1, Total: 1}))
-	assert.Equal(t, "E", Grade(finding.Summary{High: 3, Total: 3}))
+	high := finding.ConfidenceHigh
+	assert.Equal(t, "A", Grade(nil))
+	assert.Equal(t, "A", Grade(graded(9, finding.SeverityInfo, high)))
+	assert.Equal(t, "B", Grade(graded(1, finding.SeverityLow, high)))
+	assert.Equal(t, "B", Grade(graded(1, finding.SeverityMedium, high)))
+	assert.Equal(t, "C", Grade(graded(3, finding.SeverityMedium, high)))
+	assert.Equal(t, "D", Grade(graded(1, finding.SeverityHigh, high)))
+	assert.Equal(t, "E", Grade(graded(3, finding.SeverityHigh, high)))
 	// A single critical outranks everything: one exploitable weakness is
 	// enough to fail the whole domain.
-	assert.Equal(t, "F", Grade(finding.Summary{Critical: 1, High: 1, Total: 2}))
+	assert.Equal(t, "F", Grade(append(
+		graded(1, finding.SeverityCritical, high),
+		graded(1, finding.SeverityHigh, high)...)))
 
 	for _, g := range []string{"A", "B", "C", "D", "E", "F"} {
 		assert.NotEmptyf(t, GradeDescription(g), "grade %s needs a description", g)
 	}
+}
+
+// A keyword guess about a hostname must not weigh as heavily as an unsigned
+// delegation the resolver proved. Grading on severity alone discarded the
+// confidence the catalogue records, at the one point where it mattered most.
+func TestGradeWeighsConfidence(t *testing.T) {
+	// Three deterministic mediums are a C; three heuristic mediums are not.
+	assert.Equal(t, "C", Grade(graded(3, finding.SeverityMedium, finding.ConfidenceHigh)))
+	assert.Equal(t, "B", Grade(graded(3, finding.SeverityMedium, finding.ConfidenceMedium)))
+
+	// Low confidence demotes two bands, so a medium stops counting entirely.
+	assert.Equal(t, "A", Grade(graded(9, finding.SeverityMedium, finding.ConfidenceLow)))
+}
+
+// Demotion, not exclusion: a serious finding we are less sure of still counts
+// for something, and must not vanish from the grade altogether.
+func TestGradeDemotesRatherThanIgnoresUncertainFindings(t *testing.T) {
+	assert.Equal(t, "D", Grade(graded(1, finding.SeverityHigh, finding.ConfidenceHigh)))
+	assert.Equal(t, "B", Grade(graded(1, finding.SeverityHigh, finding.ConfidenceMedium)))
+
+	// A low-confidence critical lands at medium and is still visible.
+	assert.Equal(t, "B", Grade(graded(1, finding.SeverityCritical, finding.ConfidenceLow)))
+	// Three of them are enough to warrant a C.
+	assert.Equal(t, "C", Grade(graded(3, finding.SeverityCritical, finding.ConfidenceLow)))
+}
+
+// A risk the operator has accepted must not keep driving the grade down.
+func TestGradeIgnoresSuppressedFindings(t *testing.T) {
+	findings := graded(3, finding.SeverityCritical, finding.ConfidenceHigh)
+	for i := range findings {
+		findings[i].Suppressed = true
+	}
+	assert.Equal(t, "A", Grade(findings))
+}
+
+// The grade is adjusted by confidence; the reported severities are not. A
+// reader must still see what was actually found.
+func TestGradeDoesNotAlterReportedSeverities(t *testing.T) {
+	f := finding.New("DNSA-CT-002", "example.com")
+	require.Equal(t, "medium", f.Severity.String())
+
+	r := finding.NewResult("dnsaudit", "test")
+	r.Add(f, f, f)
+	r.Finalise()
+	r.Summary.Grade = Grade(r.Findings)
+
+	assert.Equal(t, 3, r.Summary.Medium, "counts report severity, not grading weight")
+	assert.Equal(t, "B", r.Summary.Grade, "three heuristic findings do not make a C")
 }
 
 func TestCacheDeduplicatesConcurrentQueries(t *testing.T) {

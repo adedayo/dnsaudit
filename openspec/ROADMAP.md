@@ -343,6 +343,22 @@ hostname changes no decision. Grouping by keyword takes the same audit to 6
 findings with all 60 names kept as evidence. Precision and volume are separate
 problems, and a report nobody finishes is not made better by being correct.
 
+That triage exposed a second defect one level up. Grading counted a
+medium-confidence keyword guess exactly as heavily as an unsigned delegation
+the resolver had proved, so `DNSA-CT-002` alone could saturate the `Medium >= 3`
+threshold and set the grade before any other check spoke. The catalogue records
+a confidence for every rule and the grade was the one place it mattered most,
+which is where it was being discarded. Grade version 2 demotes a finding one
+severity band for medium confidence and two for low before applying the
+thresholds. Only 10 of the 81 rules are below high confidence, so the change is
+narrow by construction, and all 5 critical rules are high confidence — nothing
+that should fail a domain was softened. Demotion rather than exclusion, because
+a serious finding held with less certainty still counts for something: a
+low-confidence critical lands at medium and stays visible. Reported severities
+are untouched, so the counts still describe what was found; only the grade is
+adjusted. `bbc.co.uk` moves from C to B, which is the right answer — its one
+real issue is DNSSEC, not the naming of its test estate.
+
 #### Zone transfer
 Every authoritative server is tried, not merely the first: a zone is only as
 protected as its least well configured server, and the common failure is one

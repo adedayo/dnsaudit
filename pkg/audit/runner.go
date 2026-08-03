@@ -128,7 +128,7 @@ func (r *Runner) Run(ctx context.Context, result *finding.Result, targets ...str
 	}
 	result.Resolvers = dnsaudit.Resolvers()
 	result.Finalise()
-	result.Summary.Grade = Grade(result.Summary)
+	result.Summary.Grade = Grade(result.Findings)
 	result.Summary.GradeVersion = GradeVersion
 
 	return ctx.Err()
