@@ -24,6 +24,19 @@ func publicKey(t *testing.T, bits int) string {
 	return base64.StdEncoding.EncodeToString(der)
 }
 
+// weakRSAKey512 is a precomputed 512-bit RSA public key, checked in because Go
+// 1.24 onwards refuses to generate keys this small: crypto/rsa returns
+// "512-bit keys are insecure" from GenerateKey.
+//
+// The restriction is on generation, not parsing, so dnsaudit can still detect
+// weak keys published in the wild — which is the whole point of
+// DNSA-DKIM-002. Dropping this case to satisfy the toolchain would have
+// removed coverage of a finding that still fires against real domains, so the
+// key is embedded instead. It is a public key with no corresponding secret in
+// the tree, and is never used to sign or verify anything.
+const weakRSAKey512 = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJMT2mUQEFNgsjfGwvqPtFarbBnq" +
+	"azez5MEip5Vg7dr0skS8+sFxih0aGFK0VH3NGji8OVYrjdNn+RfgvtdgKdsCAwEAAQ=="
+
 func TestParseDKIM(t *testing.T) {
 	strong := publicKey(t, 2048)
 
@@ -70,6 +83,19 @@ func TestParseDKIMWrappedKey(t *testing.T) {
 	assert.Equal(t, 2048, key.Bits)
 }
 
+// TestParseDKIMWeakKeyIsStillParsable guards the detection of DNSA-DKIM-002
+// against the toolchain itself. Go restricts *generating* small RSA keys, and
+// if a future release extended that to parsing, every weak key in the wild
+// would silently become "malformed" instead of "weak" — downgrading a specific,
+// actionable finding into a vague one, in the one case where the domain is
+// genuinely at risk.
+func TestParseDKIMWeakKeyIsStillParsable(t *testing.T) {
+	key := ParseDKIM("selector1", "v=DKIM1; k=rsa; p="+weakRSAKey512)
+
+	require.True(t, key.Valid, "a 512-bit key is weak, not malformed: %s", key.Reason)
+	assert.Equal(t, 512, key.Bits, "the key size must be reported so it can be judged")
+}
+
 func TestDKIM(t *testing.T) {
 	origin := Origin{Target: "example.com", Source: "192.0.2.1:53"}
 
@@ -82,7 +108,7 @@ func TestDKIM(t *testing.T) {
 		"no key at supplied selector": {wantIDs: []string{"DNSA-DKIM-001"}},
 		"healthy 2048-bit key":        {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 2048)}},
 		"1024-bit key":                {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 1024)}, wantIDs: []string{"DNSA-DKIM-003"}},
-		"512-bit key":                 {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 512)}, wantIDs: []string{"DNSA-DKIM-002"}},
+		"512-bit key":                 {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + weakRSAKey512}, wantIDs: []string{"DNSA-DKIM-002"}},
 		"test mode":                   {records: map[string]string{"selector1": "v=DKIM1; t=y; p=" + publicKey(t, 2048)}, wantIDs: []string{"DNSA-DKIM-005"}},
 		// A revoked or malformed key leaves the domain with no usable key
 		// either, so both findings are correct and both are needed.
