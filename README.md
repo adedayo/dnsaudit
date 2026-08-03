@@ -188,6 +188,13 @@ If a source is unreachable and a stale entry exists, the stale entry is used and
 the report says when it was fetched — an old answer that discloses its age is
 more use than no answer at all. Delete the directory to force a refresh.
 
+Where an operator publishes more than one equivalent endpoint, each is tried in
+turn, so a single URL being withdrawn does not remove that provider's coverage.
+Attribution results carry a `provenance:` record naming the endpoint used and
+the date the data was obtained, because an attribution can change when this
+tool's data is refreshed rather than when the domain changes — a distinction
+that matters when comparing two runs.
+
 ## Authority to assess
 
 `dnsaudit` is an assessment tool, not an exploitation tool. It observes; it

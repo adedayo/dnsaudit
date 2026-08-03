@@ -53,6 +53,10 @@ type NetworkObservation struct {
 	// always still announced by the same operator — but a reader comparing two
 	// runs deserves to know the basis was not refreshed.
 	StaleSources []string
+	// Provenance records where each provider's ranges came from and when.
+	// Attribution can change without the domain changing, so a consumer
+	// diffing two runs needs the data's origin and age to tell the two apart.
+	Provenance []string
 }
 
 // CoverageComplete reports that every provider range publication loaded.
@@ -285,18 +289,27 @@ func sortedKeys(m map[string]bool) []string {
 // NetworkRecords renders what was attributed, so a reader sees the whole
 // picture rather than only the exceptions.
 func NetworkRecords(obs NetworkObservation) []string {
-	records := make([]string, 0, len(obs.Hosts)+len(obs.FailedSources)+len(obs.StaleSources))
+	records := make([]string, 0,
+		len(obs.Hosts)+len(obs.FailedSources)+len(obs.StaleSources)+len(obs.Provenance))
 
 	// The coverage warning comes first, because everything below it is
 	// conditional on it. A reader who sees "unattributed" without knowing a
 	// source was missing has been misled by omission.
 	for _, src := range obs.FailedSources {
 		records = append(records,
-			"warning: provider ranges unavailable, attribution incomplete: "+src)
+			finding.RecordPrefixWarning+
+				" provider ranges unavailable, attribution incomplete: "+src)
 	}
 	for _, src := range obs.StaleSources {
 		records = append(records,
-			"warning: provider ranges could not be refreshed, using cached data: "+src)
+			finding.RecordPrefixWarning+
+				" provider ranges could not be refreshed, using cached data: "+src)
+	}
+
+	// Provenance follows the warnings and precedes the data, so a reader sees
+	// what the attributions below were derived from.
+	for _, p := range obs.Provenance {
+		records = append(records, finding.RecordPrefixProvenance+" "+p)
 	}
 
 	for _, h := range obs.Hosts {

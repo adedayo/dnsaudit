@@ -43,6 +43,7 @@ func fetchNetworkAttribution(
 		ExpectedJurisdictions: expect,
 		FailedSources:         set.Failed,
 		StaleSources:          set.Stale,
+		Provenance:            provenanceLines(set),
 	}
 
 	// The apex and the mail exchangers define the estate, so they are resolved
@@ -73,6 +74,21 @@ func fetchNetworkAttribution(
 }
 
 type estateHost struct{ name, role string }
+
+// provenanceLines renders where each provider's ranges came from and when.
+//
+// The date is rendered to the day rather than the second. Attribution is
+// compared between runs by spec 013, and a timestamp that changes on every
+// refresh would register as drift on every run, which is the false drift that
+// specification requires be avoidable.
+func provenanceLines(set netattr.Set) []string {
+	lines := make([]string, 0, len(set.Provenance))
+	for _, p := range set.Provenance {
+		lines = append(lines, p.Provider+" ranges from "+p.URL+
+			" fetched "+p.Fetched.Format("2006-01-02"))
+	}
+	return lines
+}
 
 // estateHosts lists the names that constitute the domain's own infrastructure.
 func estateHosts(ctx context.Context, c *Cache, domain string) []estateHost {

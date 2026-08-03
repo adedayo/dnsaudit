@@ -74,6 +74,43 @@ type CheckResult struct {
 	Records []string `json:"records,omitempty"`
 }
 
+// Record prefixes marking a line as describing the run rather than the domain.
+//
+// Most records are observations about the target and are stable between runs
+// unless the domain changes. A few describe how the run itself went — a
+// provider range file that was unreachable, the age of the data an attribution
+// was drawn from — and those vary with network conditions and cache state.
+//
+// Spec 013 diffs records between runs to detect drift and requires that false
+// drift be avoidable, since it destroys trust in the signal faster than missing
+// drift does. Marking these lines lets a differ exclude them without having to
+// pattern-match prose that may later be reworded.
+const (
+	// RecordPrefixWarning marks a degradation: something could not be done.
+	RecordPrefixWarning = "warning:"
+	// RecordPrefixProvenance marks a statement of where data came from and
+	// when, which changes whenever the data is refreshed.
+	RecordPrefixProvenance = "provenance:"
+)
+
+// IsDiagnosticRecord reports whether a record describes the run rather than the
+// domain, and so should not be compared when detecting drift.
+func IsDiagnosticRecord(record string) bool {
+	return strings.HasPrefix(record, RecordPrefixWarning) ||
+		strings.HasPrefix(record, RecordPrefixProvenance)
+}
+
+// ObservedRecords returns only the records describing the target, in order.
+func (c CheckResult) ObservedRecords() []string {
+	observed := make([]string, 0, len(c.Records))
+	for _, r := range c.Records {
+		if !IsDiagnosticRecord(r) {
+			observed = append(observed, r)
+		}
+	}
+	return observed
+}
+
 // ToolInfo identifies the producing binary.
 type ToolInfo struct {
 	Name    string `json:"name"`

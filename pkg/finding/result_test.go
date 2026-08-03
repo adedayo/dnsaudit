@@ -171,3 +171,39 @@ func TestSchemaVersionIsSet(t *testing.T) {
 	assert.Equal(t, SchemaVersion, r.SchemaVersion)
 	assert.Equal(t, "dnsaudit", r.Tool.Name)
 }
+
+// Spec 013 diffs records between runs to detect drift and requires that false
+// drift be avoidable. Records describing the run rather than the domain — a
+// range file that was unreachable, the date data was fetched — change with
+// network and cache state, so a differ has to be able to exclude them without
+// pattern-matching prose that may later be reworded.
+func TestIsDiagnosticRecord(t *testing.T) {
+	assert.True(t, IsDiagnosticRecord("warning: provider ranges unavailable"))
+	assert.True(t, IsDiagnosticRecord("provenance: Fastly ranges from https://x fetched 2026-08-03"))
+
+	// Observations about the domain are the drift signal itself.
+	assert.False(t, IsDiagnosticRecord("example.com 52.1.2.3 (Amazon Web Services)"))
+	assert.False(t, IsDiagnosticRecord("v=spf1 -all"))
+	assert.False(t, IsDiagnosticRecord(""))
+	// The marker is a prefix, not a substring: a record merely mentioning a
+	// warning is still an observation.
+	assert.False(t, IsDiagnosticRecord("mx1.example.com warning: nothing"))
+}
+
+func TestObservedRecordsExcludesDiagnostics(t *testing.T) {
+	c := CheckResult{Records: []string{
+		"warning: provider ranges unavailable: Amazon Web Services",
+		"example.com 52.1.2.3 (Amazon Web Services)",
+		"provenance: Fastly ranges from https://x fetched 2026-08-03",
+		"example.com 151.101.0.81 (Fastly)",
+	}}
+
+	assert.Equal(t, []string{
+		"example.com 52.1.2.3 (Amazon Web Services)",
+		"example.com 151.101.0.81 (Fastly)",
+	}, c.ObservedRecords())
+
+	// Order must be preserved: a differ comparing sequences would otherwise
+	// see drift where only the filtering changed.
+	assert.Equal(t, []string{}, CheckResult{}.ObservedRecords())
+}

@@ -219,11 +219,12 @@ func renderWarnings(w io.Writer, result *finding.Result) error {
 	seen := map[string]bool{}
 	for _, c := range result.Checks {
 		for _, r := range c.Records {
-			if !strings.HasPrefix(r, "warning:") || seen[r] {
+			if !strings.HasPrefix(r, finding.RecordPrefixWarning) || seen[r] {
 				continue
 			}
 			seen[r] = true
-			warnings = append(warnings, strings.TrimSpace(strings.TrimPrefix(r, "warning:")))
+			warnings = append(warnings,
+				strings.TrimSpace(strings.TrimPrefix(r, finding.RecordPrefixWarning)))
 		}
 	}
 	for _, warning := range warnings {

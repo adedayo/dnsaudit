@@ -58,6 +58,30 @@ func (a Attribution) Attributed() bool {
 	return a.Special != nil || a.Provider != ""
 }
 
+// endpoint is one place a publication can be fetched from, with the parser for
+// the shape served there.
+type endpoint struct {
+	url   string
+	parse func([]byte) ([]ProviderRange, error)
+}
+
+// providerSource is an operator's ranges and every endpoint they can be
+// obtained from, in preference order.
+type providerSource struct {
+	name string
+	// endpoints are tried in order until one yields ranges. A published URL
+	// can be withdrawn or moved — crt.sh returned 502 for a full day during
+	// development, and Azure's range file lives at a URL that rotates weekly —
+	// and a check that fails whenever one endpoint moves is a check people
+	// turn off.
+	//
+	// Only genuinely equivalent endpoints belong here. A near-equivalent that
+	// omits regions or covers a different population would produce attributions
+	// that look identical to correct ones while being wrong, which is worse
+	// than reporting the source as unavailable.
+	endpoints []endpoint
+}
+
 // providerSources are the published range files this package understands.
 //
 // Every entry is the operator's own machine-readable publication. Nothing here
@@ -65,21 +89,80 @@ func (a Attribution) Attributed() bool {
 // stale within days and would attribute addresses to the wrong operator with
 // the same confidence as a correct answer.
 //
-// Microsoft Azure is absent. Its ranges are published only behind a download
-// page whose URL changes with each weekly revision, with no stable endpoint to
-// fetch. Coverage is therefore incomplete, and the consequence is stated
-// plainly in the rules: an address this package cannot attribute yields no
-// finding at all rather than a claim that it belongs to nobody.
-var providerSources = []struct {
-	name  string
-	url   string
-	parse func([]byte) ([]ProviderRange, error)
-}{
-	{"Amazon Web Services", "https://ip-ranges.amazonaws.com/ip-ranges.json", parseAWS},
-	{"Google Cloud", "https://www.gstatic.com/ipranges/cloud.json", parseGCP},
-	{"Cloudflare", "https://www.cloudflare.com/ips-v4", parsePlainList},
-	{"Cloudflare", "https://www.cloudflare.com/ips-v6", parsePlainList},
-	{"Fastly", "https://api.fastly.com/public-ip-list", parseFastly},
+// Only Cloudflare publishes a second equivalent endpoint. Google's goog.json
+// is deliberately not a fallback for cloud.json: it lists every Google netblock
+// including 8.8.8.0/24, carries no region, and would attribute Google's own
+// infrastructure to a customer cloud. AWS and Fastly publish one endpoint each.
+// For those three the stale cache is the resilience, and its use is disclosed.
+//
+// Microsoft Azure is absent. Its ranges are published only at a URL carrying a
+// rotating GUID and date, of which just the two most recent weekly files are
+// retained, so consuming it would fail silently. Coverage is therefore
+// incomplete, and the consequence is stated plainly in the rules: an address
+// this package cannot attribute yields no finding at all rather than a claim
+// that it belongs to nobody.
+var providerSources = []providerSource{
+	{"Amazon Web Services", []endpoint{
+		{"https://ip-ranges.amazonaws.com/ip-ranges.json", parseAWS},
+	}},
+	{"Google Cloud", []endpoint{
+		{"https://www.gstatic.com/ipranges/cloud.json", parseGCP},
+	}},
+	{"Cloudflare", []endpoint{
+		{"https://www.cloudflare.com/ips-v4", parsePlainList},
+		{"https://api.cloudflare.com/client/v4/ips", parseCloudflareAPIv4},
+	}},
+	{"Cloudflare", []endpoint{
+		{"https://www.cloudflare.com/ips-v6", parsePlainList},
+		{"https://api.cloudflare.com/client/v4/ips", parseCloudflareAPIv6},
+	}},
+	{"Fastly", []endpoint{
+		{"https://api.fastly.com/public-ip-list", parseFastly},
+	}},
+}
+
+// load returns the first endpoint's ranges that could be fetched and parsed,
+// the URL used, when the data was obtained, and the reason each earlier
+// endpoint was skipped.
+//
+// A nil range slice means every endpoint failed. That is distinct from an empty
+// one, which would be a publication that genuinely lists nothing.
+func (s providerSource) load(ctx context.Context) ([]ProviderRange, string, time.Time, []string) {
+	var failures []string
+	for _, e := range s.endpoints {
+		data, at, err := fetchCached(ctx, e.url)
+		if err != nil {
+			failures = append(failures, e.url+": "+err.Error())
+			continue
+		}
+		ranges, err := e.parse(data)
+		if err != nil {
+			// A parse failure is as disqualifying as an unreachable endpoint:
+			// the operator changed a format this package no longer understands,
+			// and guessing at the new one would attribute addresses wrongly.
+			failures = append(failures, e.url+": "+err.Error())
+			continue
+		}
+		return ranges, e.url, at, failures
+	}
+	return nil, "", time.Time{}, failures
+}
+
+// SourceProvenance records where one operator's ranges came from and when.
+//
+// Attribution is derived from data this tool fetches, so an attribution can
+// change without the audited domain changing at all. Spec 013 diffs records
+// between runs and requires that false drift be avoidable, so a consumer needs
+// to be able to tell "the host moved" from "our data changed". That is only
+// possible if the data's origin and age travel with the result.
+type SourceProvenance struct {
+	// Provider is the operator the ranges describe.
+	Provider string
+	// URL is the endpoint the data was obtained from, which may be a fallback
+	// rather than the preferred one.
+	URL string
+	// Fetched is when the data was obtained, not when it was used.
+	Fetched time.Time
 }
 
 // Set is a loaded collection of provider ranges.
@@ -93,6 +176,9 @@ type Set struct {
 	// with the age, because the operator's endpoint could not be reached.
 	// Serving week-old data is defensible; doing so without saying is not.
 	Stale []string
+	// Provenance records where each operator's ranges came from and when, so a
+	// consumer diffing two runs can tell a moved host from refreshed data.
+	Provenance []SourceProvenance
 	// Fetched is when the data was obtained, which is what lets a reader judge
 	// how stale an attribution may be.
 	Fetched time.Time
@@ -156,26 +242,25 @@ func Load(ctx context.Context) (Set, error) {
 	byName := map[string]*Provider{}
 
 	for _, src := range providerSources {
-		data, at, err := fetchCached(ctx, src.url)
-		if err != nil {
-			set.Failed = append(set.Failed, src.name+" ("+src.url+")")
+		ranges, used, at, failures := src.load(ctx)
+		if ranges == nil {
+			set.Failed = append(set.Failed,
+				src.name+" ("+strings.Join(failures, "; ")+")")
 			continue
 		}
 		// A cache entry older than the TTL means the operator's endpoint could
 		// not be reached and last week's data is standing in for it.
-		if age := time.Since(at); age > CacheTTL {
+		if time.Since(at) > CacheTTL {
 			set.Stale = append(set.Stale, fmt.Sprintf("%s (%s, cached %s)",
-				src.name, src.url, at.Format(time.RFC3339)))
+				src.name, used, at.Format(time.RFC3339)))
 		}
-		ranges, err := src.parse(data)
-		if err != nil {
-			set.Failed = append(set.Failed, src.name+" ("+src.url+"): "+err.Error())
-			continue
-		}
+		set.Provenance = append(set.Provenance, SourceProvenance{
+			Provider: src.name, URL: used, Fetched: at.UTC(),
+		})
 
 		p, ok := byName[src.name]
 		if !ok {
-			p = &Provider{Name: src.name, Source: src.url}
+			p = &Provider{Name: src.name, Source: used}
 			byName[src.name] = p
 		}
 		p.Ranges = append(p.Ranges, ranges...)
@@ -290,6 +375,52 @@ func parsePlainList(data []byte) ([]ProviderRange, error) {
 			continue
 		}
 		if pfx, err := netip.ParsePrefix(line); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx})
+		}
+	}
+	return requireRanges(ranges)
+}
+
+// parseCloudflareAPIv4 and parseCloudflareAPIv6 read Cloudflare's JSON API,
+// which serves both families in one document and is the fallback for the two
+// plain-text lists.
+//
+// The families are extracted separately so each plain-text list falls back to
+// the equivalent half. Returning both from either would double-count the
+// ranges when only one endpoint had failed.
+func parseCloudflareAPIv4(data []byte) ([]ProviderRange, error) {
+	return parseCloudflareAPI(data, false)
+}
+
+func parseCloudflareAPIv6(data []byte) ([]ProviderRange, error) {
+	return parseCloudflareAPI(data, true)
+}
+
+func parseCloudflareAPI(data []byte, wantV6 bool) ([]ProviderRange, error) {
+	var doc struct {
+		Success bool `json:"success"`
+		Result  struct {
+			IPv4CIDRs []string `json:"ipv4_cidrs"`
+			IPv6CIDRs []string `json:"ipv6_cidrs"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, err
+	}
+	if !doc.Success {
+		// The API reports failure in the body with HTTP 200, so the status code
+		// alone would let an error document be parsed as an empty range set.
+		return nil, fmt.Errorf("the Cloudflare API reported failure")
+	}
+
+	raw := doc.Result.IPv4CIDRs
+	if wantV6 {
+		raw = doc.Result.IPv6CIDRs
+	}
+
+	ranges := make([]ProviderRange, 0, len(raw))
+	for _, s := range raw {
+		if pfx, err := netip.ParsePrefix(s); err == nil {
 			ranges = append(ranges, ProviderRange{Prefix: pfx})
 		}
 	}

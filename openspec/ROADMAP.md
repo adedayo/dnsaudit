@@ -269,6 +269,37 @@ failed, and conflating the two would overstate the problem.
 none at all. It holds the lifetime, the atomic write and the stale fallback,
 which is the whole of what stands between the check and the network.
 
+**Sources carry fallbacks.** Each operator's ranges are described by an ordered
+list of endpoints, tried until one both fetches and parses; a parse failure
+disqualifies an endpoint exactly as unreachability does, since an operator that
+changed format is as unusable as one that is down. When all of them fail, every
+failure is named, because a caller told only about the last would investigate
+the wrong endpoint.
+
+Only Cloudflare publishes a genuine second endpoint, its JSON API, and the two
+address families are extracted separately so each plain-text list falls back to
+the equivalent half rather than double-counting. Google's `goog.json` is
+deliberately *not* a fallback for `cloud.json`: it lists every Google netblock
+including `8.8.8.0/24`, carries no region, and would attribute Google's own
+infrastructure to a customer cloud — an attribution indistinguishable from a
+correct one while being wrong, which is worse than reporting the source as
+unavailable. AWS and Fastly publish one endpoint each, so for those three the
+stale cache is the resilience and its use is disclosed.
+
+**Attribution carries provenance.** Spec `013` diffs records between runs and
+requires that false drift be avoidable, since it destroys trust in the signal
+faster than missing drift does. Attribution is derived from data this tool
+fetches, so it can change without the audited domain changing at all. Each
+provider's ranges therefore record the endpoint actually used — which may be a
+fallback — and the date obtained, emitted as a `provenance:` record. The date is
+rendered to the day rather than the second, because a timestamp changing on
+every refresh would itself register as drift on every run.
+
+`finding.IsDiagnosticRecord` and `CheckResult.ObservedRecords` mark the
+distinction in shared code: records prefixed `warning:` or `provenance:`
+describe the run, everything else describes the domain. A differ can then
+exclude run state without pattern-matching prose that may later be reworded.
+
 This unblocked `DNSA-NS-002` and `DNSA-MX-005`. Both are reported at low
 confidence when every host sits under the audited domain itself: `google.com`'s
 `ns1`–`ns4.google.com` are vanity names that reveal nothing about the underlying
