@@ -1354,9 +1354,11 @@ func index(entries []Entry) map[string]Entry {
 	return byID
 }
 
-// Lookup returns the catalogue entry for an ID.
+// Lookup returns the catalogue entry for an ID. Legacy DNSA- identifiers are
+// accepted and resolve to the same entry as their canonical SURF- equivalent;
+// the entry returned always reports its canonical ID.
 func Lookup(id string) (Entry, bool) {
-	e, ok := catalogue[id]
+	e, ok := catalogue[CanonicalID(id)]
 	return e, ok
 }
 

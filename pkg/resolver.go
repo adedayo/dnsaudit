@@ -18,6 +18,14 @@ const DefaultPort = "53"
 //	VANTAGE_RESOLVERS="1.1.1.1,8.8.8.8:53,[2606:4700:4700::1111]:53"
 const ResolverEnvVar = "VANTAGE_RESOLVERS"
 
+// LegacyResolverEnvVar is the name this variable had before the rename from
+// dnsaudit to vantage. It is still honoured, with lower precedence than
+// ResolverEnvVar, because the failure mode otherwise is silent: a host that
+// exported the old name would fall back to the system resolvers and keep
+// producing results, just not the ones the operator configured. A changed
+// resolver changes what the audit sees, so this must not go unnoticed.
+const LegacyResolverEnvVar = "DNSAUDIT_RESOLVERS"
+
 // FallbackResolvers are well-known public resolvers used as a last resort when
 // the operating system's resolver configuration cannot be determined. This
 // guarantees that vantage remains functional on any platform, including
@@ -60,7 +68,8 @@ func ResetResolverCache() {
 // will be used for DNS queries. Resolution order is:
 //
 //  1. Explicit override set via SetResolvers (e.g. the --resolver CLI flag).
-//  2. The VANTAGE_RESOLVERS environment variable.
+//  2. The VANTAGE_RESOLVERS environment variable, or DNSAUDIT_RESOLVERS if
+//     only the latter is set.
 //  3. Platform-specific system configuration:
 //     - Unix-like (Linux, macOS, BSD): /etc/resolv.conf
 //     - Windows: GetAdaptersAddresses (IP Helper API)
@@ -91,7 +100,11 @@ func Resolvers() []string {
 
 // discoverResolvers performs the environment then platform then fallback lookup.
 func discoverResolvers() []string {
-	if env := strings.TrimSpace(os.Getenv(ResolverEnvVar)); env != "" {
+	for _, name := range []string{ResolverEnvVar, LegacyResolverEnvVar} {
+		env := strings.TrimSpace(os.Getenv(name))
+		if env == "" {
+			continue
+		}
 		if servers := normaliseServers(strings.Split(env, ",")); len(servers) > 0 {
 			return servers
 		}
