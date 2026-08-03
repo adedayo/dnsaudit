@@ -99,12 +99,12 @@ func (e *SPFEvaluation) walk(ctx context.Context, r SPFResolver, domain, record 
 			name, value, _ = strings.Cut(bare, "=")
 		}
 
-		switch {
-		case name == "include", name == "redirect":
+		switch name {
+		case "include", "redirect":
 			e.Lookups++
 			e.follow(ctx, r, term, value, visited, depth)
 
-		case name == "a", name == "mx", name == "ptr", name == "exists":
+		case "a", "mx", "ptr", "exists":
 			e.Lookups++
 			target := value
 			if target == "" {

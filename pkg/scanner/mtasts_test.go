@@ -80,8 +80,13 @@ func TestFetchMTASTSPolicyRejectsUntrustedCertificate(t *testing.T) {
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 	}}
 
-	_, err := client.Get(srv.URL + "/.well-known/mta-sts.txt")
+	resp, err := client.Get(srv.URL + "/.well-known/mta-sts.txt")
 	require.Error(t, err, "a self-signed policy host must not be trusted")
+	// An error does not guarantee a nil response, and leaking the body would
+	// hold the connection open for the rest of the run.
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 }
 
 // TestFetchMTASTSPolicyUnreachableHost covers the common real-world case: the

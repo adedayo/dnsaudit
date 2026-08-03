@@ -26,6 +26,11 @@ linters:
     goconst:
       min-len: 3
       min-occurrences: 4
+      # Occurrences in tests are counted even when the report is suppressed in
+      # test files, which makes a literal used twice in production code look
+      # like a duplication problem because a table-driven test exercises it
+      # eight times. Count production code only.
+      ignore-tests: true
     misspell:
       locale: UK
     revive:
@@ -45,6 +50,42 @@ linters:
         linters:
           - goconst
           - unparam
+      # Test servers and fixture clients are bounded by the test binary's own
+      # lifetime, so threading a context through them adds ceremony without
+      # adding cancellation. Production code remains subject to noctx.
+      - path: _test\.go
+        linters:
+          - noctx
+      # The catalogue is a declarative table where the check name is the datum,
+      # not a magic string. Replacing "dmarc" with a constant would obscure the
+      # data without preventing anything: ValidateRegistry already fails the
+      # build if an entry names a check that does not exist, and
+      # TestEveryProfileMemberIsRegistered catches the same error in profiles.
+      - path: pkg/finding/catalogue\.go
+        linters:
+          - goconst
+      # Output field names are a published contract (spec 009), consumed by
+      # --fields and appearing verbatim in JSON, CSV and SARIF. Writing them
+      # literally at each site is what makes the emitted schema readable; a
+      # constant would hide the very strings a reader needs to verify.
+      - path: pkg/report/
+        linters:
+          - goconst
+      # Check registrations and profile membership are declarative data for the
+      # same reason as the catalogue, and the invariants are test-enforced.
+      # A shared constant would also be actively misleading here: the "dkim" in
+      # the selector list is a DKIM selector that happens to match the check
+      # name, and the two must remain free to diverge.
+      - path: pkg/audit/(checks|profiles)\.go
+        linters:
+          - goconst
+      # Protocol keywords that coincide across specifications must not be
+      # shared. "none" is a DMARC policy in RFC 7489 and an MTA-STS mode in
+      # RFC 8461; a single constant would couple two unrelated vocabularies, so
+      # that redefining one silently changed the other.
+      - path: pkg/analyse/
+        linters:
+          - goconst
       # Platform-specific resolver discovery requires unsafe pointer arithmetic
       # to walk the Windows IP Helper API linked list.
       - path: pkg/resolver_windows\.go

@@ -29,6 +29,11 @@ type Entry struct {
 // idPattern constrains catalogue identifiers to DNSA-<CHECK>-<NNN>.
 var idPattern = regexp.MustCompile(`^DNSA-[A-Z0-9]+-[0-9]{3}$`)
 
+// rfc6376KeyRecord is the DKIM key-record section, cited by every DKIM key
+// finding. Naming it once means a mistyped fragment cannot send a reader to the
+// wrong part of the specification for some findings but not others.
+const rfc6376KeyRecord = "https://www.rfc-editor.org/rfc/rfc6376#section-3.6.1"
+
 // Compliance tags applied to catalogue entries.
 const (
 	TagNCSCMailCheck = "ncsc-mailcheck"
@@ -348,7 +353,7 @@ var catalogue = index([]Entry{
 		Remediation: "Enable DKIM signing at your mail provider and publish the key it gives you at " +
 			"`<selector>._domainkey.<domain>`. If you already sign with a selector that is not " +
 			"widely used, re-run the check with `-s <selector>`.",
-		References: []string{"https://www.rfc-editor.org/rfc/rfc6376#section-3.6.1"},
+		References: []string{rfc6376KeyRecord},
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
@@ -388,7 +393,7 @@ var catalogue = index([]Entry{
 			"still signed with this selector will fail DKIM verification.",
 		Remediation: "If the selector is retired, remove the record once no signed mail remains in " +
 			"flight. If it is still in use, republish the correct public key.",
-		References: []string{"https://www.rfc-editor.org/rfc/rfc6376#section-3.6.1"},
+		References: []string{rfc6376KeyRecord},
 		Tags:       []string{TagEmailAuth},
 	},
 	{
@@ -401,7 +406,7 @@ var catalogue = index([]Entry{
 			"experimental and not to penalise unsigned or failing mail. Left in place after " +
 			"rollout, it quietly removes the protection DKIM is meant to provide.",
 		Remediation: "Remove the `t=y` flag once signing is verified in production.",
-		References:  []string{"https://www.rfc-editor.org/rfc/rfc6376#section-3.6.1"},
+		References:  []string{rfc6376KeyRecord},
 		Tags:        []string{TagEmailAuth},
 	},
 	{
@@ -415,7 +420,7 @@ var catalogue = index([]Entry{
 			"be unable to verify signatures made with this selector.",
 		Remediation: "Republish the key exactly as issued by your mail provider, taking care that " +
 			"long values split across TXT strings are concatenated without inserted whitespace.",
-		References: []string{"https://www.rfc-editor.org/rfc/rfc6376#section-3.6.1"},
+		References: []string{rfc6376KeyRecord},
 		Tags:       []string{TagEmailAuth},
 	},
 
