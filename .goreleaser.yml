@@ -51,9 +51,12 @@ checksum:
 sboms:
   - artifacts: archive
 
-# Homebrew. A Cask rather than a Formula: GoReleaser deprecated `brews` in
-# v2.10 and removed it in v2.16, because Formulas that install pre-compiled
-# binaries were always a workaround, and Homebrew now expects Casks for this.
+# Homebrew. A Cask rather than a Formula: GoReleaser soft-deprecated `brews`
+# in v2.10 and formally deprecated it in v2.16, because Formulas that install
+# pre-compiled binaries were always a workaround and Homebrew now expects
+# Casks for this. Deprecated options are only removed on major versions, so
+# `brews` keeps working until v3 — this is about not writing new configuration
+# against something already on its way out.
 #
 # The tap is adedayo/homebrew-tap, the same one checkmate publishes to, and
 # the token is read from HOMEBREW_GITHUB_TOKEN to match. Pushing to another
