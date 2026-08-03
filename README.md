@@ -290,6 +290,11 @@ total timeout always wins.
 
 ## Library
 
+`dnsaudit` is primarily a command-line tool. The Go packages are exported so it
+can be embedded — the author uses them in other projects — but they are not a
+supported API, and they are not covered by the version guarantees below. See
+[Compatibility](#compatibility) before depending on them.
+
 All scanner functions take a `context.Context` as their first argument and return
 errors prefixed with `error:` (see the sentinel table in spec `002`).
 
@@ -305,6 +310,27 @@ policy, err := scanner.LookupDMARC(ctx, "example.com")
 ```
 
 Passing `0` (or any non-positive duration) to either setter restores the default.
+
+## Compatibility
+
+Version numbers describe the **command-line interface**, because that is what
+most people depend on and what is expensive to break. Within a major version:
+
+| Stable | Meaning |
+|---|---|
+| Exit codes | 0–4 keep their meanings; a script gating on them keeps working |
+| Finding identifiers | `DNSA-SPF-004` always denotes the same condition. Rules may be added, and the prose or severity of an existing rule may be revised, but an identifier is never reused for a different condition |
+| Structured output | Fields are added, not removed or repurposed; `schema_version` carries the contract |
+| Command and flag names | Existing invocations keep working; flags may be added |
+
+**The Go packages under `pkg/` are explicitly not covered.** They change
+whenever the implementation needs them to, including in patch releases. Pin a
+commit if you embed them.
+
+This is a deliberate trade. Freezing the Go API would slow the work that makes
+the tool useful, for the benefit of a handful of consumers who can pin instead;
+freezing the CLI costs little and protects everyone who has wired `dnsaudit`
+into a pipeline.
 
 ## Specifications
 
