@@ -1,0 +1,68 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - errorlint
+    - goconst
+    - gocritic
+    - misspell
+    - nilerr
+    - noctx
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+    goconst:
+      min-len: 3
+      min-occurrences: 4
+    misspell:
+      locale: UK
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+    rules:
+      # Test helpers and table-driven tests are intentionally repetitive.
+      - path: _test\.go
+        linters:
+          - goconst
+          - unparam
+      # Platform-specific resolver discovery requires unsafe pointer arithmetic
+      # to walk the Windows IP Helper API linked list.
+      - path: pkg/resolver_windows\.go
+        linters:
+          - gocritic
+      # The project uses UK spelling, but --no-color and the NO_COLOR
+      # environment variable are established cross-tool conventions. Spelling
+      # them "correctly" would break compatibility with every other CLI.
+      - path: cmd/output\.go
+        linters:
+          - misspell
+        text: "`(color|COLOR)` is a misspelling"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/adedayo/dnsaudit

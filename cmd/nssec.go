@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
+
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 )
 
 // nssecCmd checks for NSEC/NSEC3 denial-of-existence records.

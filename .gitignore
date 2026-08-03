@@ -1,0 +1,5 @@
+coverage.out
+coverage.html
+dist/
+dnsaudit
+*.prerelease.bak

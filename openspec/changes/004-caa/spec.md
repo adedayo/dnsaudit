@@ -1,25 +1,21 @@
-# Spec 004 – CAA Record Inspection
+# Spec 004 – CAA Records
 
 ## Specification ID
 `004-caa`
 
 ## Title
-Certification Authority Authorization (CAA) Record Audit
+Certification Authority Authorization (CAA) Record Retrieval
 
 ## Status
 `Implemented`
 
 ## Summary
-Queries DNS Certification Authority Authorization (CAA) records for a domain.
-CAA records declare which certificate authorities are permitted to issue TLS
-certificates for that domain. Missing CAA records allow any trusted CA to issue
-a certificate, dramatically widening the attack surface.
+Retrieves the CAA records for a domain, revealing which certificate authorities
+are authorised to issue certificates for it.
 
 ## Motivation
-From a CISO perspective, verifying CAA records helps:
-- Prevent rogue or mis-issued certificates from untrusted CAs.
-- Enforce the principle of least privilege for certificate issuance.
-- Detect domains without CAA protection that could be exploited via CA compromise.
+Without CAA records, any public CA may issue a certificate for the domain.
+Publishing CAA constrains issuance and is a low-cost, high-value control.
 
 ## Input
 | Parameter | Type   | Required | Description                            |
@@ -27,35 +23,34 @@ From a CISO perspective, verifying CAA records helps:
 | domain    | string | yes      | Fully-qualified domain name to inspect |
 
 ## Output
-A list of CAA record strings, one per line, in the format:
+`scanner.LookupCAA` returns `[]string`, one entry per record, formatted as:
 ```
-<flags> <tag> <value>
+<flag> <tag> <value>
 ```
-
-### Tags
-| Tag       | Meaning                                             |
-|-----------|-----------------------------------------------------|
-| `issue`   | Permits the named CA to issue end-entity certs      |
-| `issuewild` | Permits the named CA to issue wildcard certs      |
-| `iodef`   | URL to report CA policy violations                  |
 
 ### Example
 ```
 0 issue letsencrypt.org
-0 issuewild ;
-0 iodef mailto:certs@example.com
+0 iodef mailto:security@example.com
 ```
 
+The CLI prints one record per line.
+
 ## Error Cases
-| Condition               | Error message          |
-|-------------------------|------------------------|
-| No CAA records found    | `error: not found`     |
-| DNS query failure       | `error: dns query failed: <cause>` |
+| Condition            | Error message                      |
+|----------------------|------------------------------------|
+| No CAA records found | `error: not found`                 |
+| DNS query failure    | `error: dns query failed: <cause>` |
+| Non-success RCODE    | `error: dns response code <n>`     |
 
 ## CLI Usage
 ```
 dnsaudit caa example.com
 ```
 
+## Testing
+`LookupCAAWithServer` is the server-parameterised variant used by the tests; it
+shares the `formatCAA` implementation with the public API.
+
 ## References
-- [RFC 8659 – DNS CAA Resource Record](https://tools.ietf.org/html/rfc8659)
+- [RFC 8659 – DNS Certification Authority Authorization](https://tools.ietf.org/html/rfc8659)

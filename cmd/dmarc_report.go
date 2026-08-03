@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
+
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 )
 
 // dmarcReportCmd shows DMARC policy and aggregate/forensic report destinations.

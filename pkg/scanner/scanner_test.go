@@ -6,10 +6,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 )
 
 // startMockDNS starts a local mock DNS server on a random UDP port and returns

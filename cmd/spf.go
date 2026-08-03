@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -33,10 +33,12 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
+
+	"github.com/adedayo/dnsaudit/pkg/analyse"
+	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 )
 
 // spfCmd represents the spf command
@@ -44,17 +46,26 @@ var spfCmd = &cobra.Command{
 	Use:   "spf [domain]",
 	Short: "Retrieve the Sender Policy Framework (SPF) record for a domain.",
 	Long: `Query the SPF TXT record for a domain to determine which mail servers
-are permitted to send email on its behalf. Useful for detecting mail spoofing risk.`,
+are permitted to send email on its behalf. Useful for detecting mail spoofing risk.
+
+With --findings (or any structured output format) the record is assessed against
+RFC 7208 rather than merely retrieved: permissive terminal mechanisms, duplicate
+records, deprecated mechanisms and overly broad address ranges are reported.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
-		spf, err := scanner.LookupSPF(ctx, args[0])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return err
-		}
-		fmt.Println(spf)
-		return nil
+		return runRecordCheck(context.Background(), args[0], recordCheck{
+			name:     "spf",
+			retrieve: scanner.LookupSPFRecordsFrom,
+			analyse: func(ctx context.Context, o analyse.Origin, records []string) []finding.Finding {
+				return analyse.SPFRecursive(ctx, o, scanner.SPFResolver{},
+					records, scanner.SendsMail(ctx, o.Target))
+			},
+			render: func(records []string) {
+				for _, r := range records {
+					fmt.Println(r)
+				}
+			},
+		})
 	},
 }
 

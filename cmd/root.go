@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -33,13 +33,26 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	dnsaudit "github.com/adedayo/dnsaudit/pkg"
 )
 
-var cfgFile string
+var (
+	cfgFile string
+	// resolvers holds the value of the --resolver flag.
+	resolvers []string
+	// queryTimeout holds the value of the --query-timeout flag.
+	queryTimeout time.Duration
+	// totalTimeout holds the value of the --timeout flag.
+	totalTimeout time.Duration
+	// queryRate holds the value of the --query-rate flag.
+	queryRate int
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -49,30 +62,67 @@ var rootCmd = &cobra.Command{
 across your domains. It helps security teams and CISOs understand their
 external attack surface by auditing records such as SPF, DKIM, DMARC, DANE,
 CAA, DNSSEC, PTR, DNSBL listings, and more.`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
-
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	rootCmd.Version = versionString()
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
+
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		exit(err)
 	}
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, initResolvers, initTimeouts)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dnsaudit.yaml)")
+	rootCmd.PersistentFlags().StringSliceVar(&resolvers, "resolver", nil,
+		"DNS resolver(s) to use, e.g. --resolver 1.1.1.1 --resolver 8.8.8.8:53. "+
+			"Defaults to the platform's configured nameservers (resolv.conf on Linux/macOS, "+
+			"the IP Helper API on Windows), falling back to public resolvers.")
+	rootCmd.PersistentFlags().DurationVar(&queryTimeout, "query-timeout", dnsaudit.DefaultQueryTimeout,
+		"How long to wait for a single resolver before failing over to the next one. "+
+			"Raise this on slow or lossy links.")
+	rootCmd.PersistentFlags().DurationVar(&totalTimeout, "timeout", dnsaudit.DefaultTotalTimeout,
+		"Overall time budget for a lookup, across all resolvers.")
+	rootCmd.PersistentFlags().IntVar(&queryRate, "query-rate", dnsaudit.DefaultQueryRate,
+		"Maximum DNS queries per second per resolver. Keeps concurrent audits from "+
+			"tripping rate limiting, which would turn into spurious findings. 0 disables the limit.")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	registerOutputFlags(rootCmd)
+}
+
+// initResolvers applies the --resolver flag, if supplied. When it is not
+// supplied, the dnsaudit package auto-discovers resolvers in a platform
+// independent way, so no action is needed here.
+func initResolvers() {
+	if len(resolvers) > 0 {
+		dnsaudit.SetResolvers(resolvers...)
+	}
+}
+
+// initTimeouts applies the --query-timeout and --timeout flags. Flags win over
+// the DNSAUDIT_QUERY_TIMEOUT / DNSAUDIT_TIMEOUT environment variables, which in
+// turn win over the built-in defaults.
+func initTimeouts() {
+	if rootCmd.PersistentFlags().Changed("query-timeout") {
+		dnsaudit.SetQueryTimeout(queryTimeout)
+	}
+	if rootCmd.PersistentFlags().Changed("timeout") {
+		dnsaudit.SetTotalTimeout(totalTimeout)
+	}
+	if rootCmd.PersistentFlags().Changed("query-rate") {
+		dnsaudit.SetQueryRate(queryRate)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.

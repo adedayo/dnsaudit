@@ -17,14 +17,12 @@ func LookupSPF(ctx context.Context, domain string) (SPFRecord, error) {
 		for _, txt := range txts {
 			txt = strings.TrimSpace(txt)
 			if strings.HasPrefix(txt, "v=spf1") {
-
 				spf := SPFRecord{
 					Domain: domain,
 					Raw:    txt,
 				}
 
 				fields := strings.Fields(txt)
-				fmt.Printf("%#v\n", fields)
 				for _, f := range fields {
 					fs := strings.Split(f, ":")
 					mechanism := fs[0]
@@ -88,7 +86,7 @@ func LookupSPF(ctx context.Context, domain string) (SPFRecord, error) {
 						}
 						spf.DesignatedSenderMechanisms = append(spf.DesignatedSenderMechanisms, m)
 
-					case "ptr", "+ptr", "-ptr": //Do not use this
+					case "ptr", "+ptr", "-ptr": // Do not use this
 						m := Directive{
 							Mechanism: "ptr",
 							Qualifier: getQualifier(mechanism),
@@ -104,17 +102,16 @@ func LookupSPF(ctx context.Context, domain string) (SPFRecord, error) {
 						}
 						spf.DesignatedSenderMechanisms = append(spf.DesignatedSenderMechanisms, m)
 					}
-
 				}
 				return spf, nil
 			}
 		}
-		return SPFRecord{}, fmt.Errorf("No SPF record found on %s", domain)
+		return SPFRecord{}, fmt.Errorf("no SPF record found on %s", domain)
 	}
 	return SPFRecord{}, err
 }
 
-//SPFRecord represents the SPF record for a domain
+// SPFRecord represents the SPF record for a domain
 type SPFRecord struct {
 	Domain                     string
 	Raw                        string
@@ -122,7 +119,7 @@ type SPFRecord struct {
 	DesignatedSenderMechanisms []Directive
 }
 
-//Directive is SPF Directive
+// Directive is SPF Directive
 type Directive struct {
 	Qualifier string
 	Mechanism string
@@ -142,7 +139,6 @@ func getQualifier(mechanism string) (q string) {
 			return "+"
 		default:
 			return
-
 		}
 	}
 	return

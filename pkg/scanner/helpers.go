@@ -1,33 +1,28 @@
 package scanner
 
-// helpers.go exposes server-parameterised variants of all scanner functions to
-// enable unit testing against a local mock DNS server without modifying
-// /etc/resolv.conf or relying on external DNS infrastructure.
+// helpers.go exposes server-parameterised variants of the scanner functions.
+// They accept an explicit resolver address (e.g. "127.0.0.1:5353") and are used
+// by scanner_test.go to run against a local mock DNS server, as well as for
+// targeted diagnostics against a specific nameserver.
 //
-// These functions mirror the public API but accept an explicit "server" address
-// (e.g. "127.0.0.1:5353"). They are used by scanner_test.go and are NOT part
-// of the public external API.
+// These helpers are not part of the stable public API and may change.
 
 import (
 	"context"
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/miekg/dns"
+
 	d "github.com/adedayo/dnsaudit/pkg"
 )
 
-// lookupTXTWithServer is a server-parameterised version of d.LookupTXT.
+// lookupTXTWithServer is a server-parameterised TXT lookup.
 func lookupTXTWithServer(ctx context.Context, name, server string) ([]string, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(name), dns.TypeTXT)
-	m.RecursionDesired = true
-	client := &dns.Client{Timeout: 5 * time.Second}
-	resp, _, err := client.ExchangeContext(ctx, m, server)
+	resp, err := d.ExchangeWithServer(ctx, server, name, dns.TypeTXT)
 	if err != nil {
-		return nil, fmt.Errorf("error: dns query failed: %w", err)
+		return nil, err
 	}
 	var txts []string
 	for _, rr := range resp.Answer {
@@ -41,7 +36,7 @@ func lookupTXTWithServer(ctx context.Context, name, server string) ([]string, er
 	return txts, nil
 }
 
-// LookupSPFWithServer is a test-friendly version of LookupSPF.
+// LookupSPFWithServer is a server-parameterised version of LookupSPF.
 func LookupSPFWithServer(ctx context.Context, domain, server string) (string, error) {
 	txts, err := lookupTXTWithServer(ctx, domain, server)
 	if err != nil {
@@ -56,135 +51,96 @@ func LookupSPFWithServer(ctx context.Context, domain, server string) (string, er
 	return "", fmt.Errorf("error: not found")
 }
 
-// LookupDMARCWithServer is a test-friendly version of LookupDMARC.
+// LookupDKIMWithServer is a server-parameterised version of LookupDKIM.
+func LookupDKIMWithServer(ctx context.Context, domain, selector, server string) (string, error) {
+	txts, err := lookupTXTWithServer(ctx, fmt.Sprintf("%s._domainkey.%s", selector, domain), server)
+	if err != nil {
+		return "", err
+	}
+	return txts[0], nil
+}
+
+// LookupDMARCWithServer is a server-parameterised version of LookupDMARC.
 func LookupDMARCWithServer(ctx context.Context, domain, server string) (string, error) {
 	txts, err := lookupTXTWithServer(ctx, "_dmarc."+domain, server)
 	if err != nil {
 		return "", err
 	}
-	for _, txt := range txts {
-		txt = strings.TrimSpace(txt)
-		if strings.HasPrefix(txt, "v=DMARC1") {
-			parts := strings.Split(txt, ";")
-			for _, p := range parts {
-				p = strings.TrimSpace(p)
-				if strings.HasPrefix(p, "p=") {
-					return strings.ToLower(strings.TrimPrefix(p, "p=")), nil
-				}
-			}
-		}
-	}
-	return "", fmt.Errorf("error: not found")
+	return parseDMARCPolicy(txts)
 }
 
-// ParseDMARCReportingWithServer is a test-friendly version of ParseDMARCReporting.
+// ParseDMARCReportingWithServer is a server-parameterised version of ParseDMARCReporting.
 func ParseDMARCReportingWithServer(ctx context.Context, domain, server string) (rua []string, ruf []string, err error) {
 	txts, err := lookupTXTWithServer(ctx, "_dmarc."+domain, server)
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, txt := range txts {
-		txt = strings.TrimSpace(txt)
-		if strings.HasPrefix(txt, "v=DMARC1") {
-			parts := strings.Split(txt, ";")
-			for _, p := range parts {
-				p = strings.TrimSpace(p)
-				if strings.HasPrefix(p, "rua=") {
-					rua = append(rua, strings.TrimPrefix(p, "rua="))
-				} else if strings.HasPrefix(p, "ruf=") {
-					ruf = append(ruf, strings.TrimPrefix(p, "ruf="))
-				}
-			}
-		}
-	}
-	if len(rua) == 0 && len(ruf) == 0 {
-		return nil, nil, fmt.Errorf("error: not found")
-	}
-	return rua, ruf, nil
+	return parseDMARCReporting(txts)
 }
 
-// CheckMTAStsWithServer is a test-friendly version of CheckMTASts.
+// CheckMTAStsWithServer is a server-parameterised version of CheckMTASts.
 func CheckMTAStsWithServer(ctx context.Context, domain, server string) (string, error) {
 	txts, err := lookupTXTWithServer(ctx, "_mta-sts."+domain, server)
 	if err != nil {
 		return "", err
 	}
-	if len(txts) > 0 {
-		return txts[0], nil
+	return txts[0], nil
+}
+
+// CheckDNSSECWithServer is a server-parameterised version of CheckDNSSEC.
+func CheckDNSSECWithServer(ctx context.Context, domain, server string) (string, error) {
+	resp, err := d.ExchangeWithServer(ctx, server, domain, dns.TypeDNSKEY)
+	if err != nil {
+		return "", err
 	}
-	return "", fmt.Errorf("error: not found")
+	if resp.Rcode != dns.RcodeSuccess {
+		return "", fmt.Errorf("error: dns response code %d", resp.Rcode)
+	}
+	for _, rr := range resp.Answer {
+		if _, ok := rr.(*dns.DNSKEY); ok {
+			return "enabled", nil
+		}
+	}
+	return "not found", nil
 }
 
 // lookupTLSAWithServer queries TLSA records for an arbitrary name.
 func lookupTLSAWithServer(ctx context.Context, name, server string) (string, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(name), dns.TypeTLSA)
-	m.RecursionDesired = true
-	client := &dns.Client{Timeout: 5 * time.Second}
-	resp, _, err := client.ExchangeContext(ctx, m, server)
+	resp, err := d.ExchangeWithServer(ctx, server, name, dns.TypeTLSA)
 	if err != nil {
-		return "", fmt.Errorf("error: dns query failed: %w", err)
+		return "", err
 	}
-	var records []string
-	for _, rr := range resp.Answer {
-		if tlsa, ok := rr.(*dns.TLSA); ok {
-			rec := fmt.Sprintf("%d %d %d %s",
-				tlsa.Usage, tlsa.Selector, tlsa.MatchingType,
-				strings.ToUpper(fmt.Sprintf("%x", tlsa.Certificate)))
-			records = append(records, rec)
-		}
-	}
-	if len(records) == 0 {
-		return "", fmt.Errorf("error: not found")
-	}
-	return strings.Join(records, ", "), nil
+	return formatTLSA(resp.Answer)
 }
 
-// LookupTLSAHTTPSWithServer is a test-friendly version of LookupTLSAHTTPS.
+// LookupTLSAHTTPSWithServer is a server-parameterised version of LookupTLSAHTTPS.
 func LookupTLSAHTTPSWithServer(ctx context.Context, domain, server string) (string, error) {
 	return lookupTLSAWithServer(ctx, "_443._tcp."+domain, server)
 }
 
-// LookupTLSASSHWithServer is a test-friendly version of LookupTLSASSH.
+// LookupTLSASSHWithServer is a server-parameterised version of LookupTLSASSH.
 func LookupTLSASSHWithServer(ctx context.Context, domain, server string) (string, error) {
 	return lookupTLSAWithServer(ctx, "_22._tcp."+domain, server)
 }
 
-// LookupTLASSMTPWithServer is a test-friendly version of LookupTLASSMTP.
+// LookupTLASSMTPWithServer is a server-parameterised version of LookupTLASSMTP.
 func LookupTLASSMTPWithServer(ctx context.Context, domain, server string) (string, error) {
 	return lookupTLSAWithServer(ctx, "_25._tcp."+domain, server)
 }
 
-// LookupCAAWithServer is a test-friendly version of LookupCAA.
+// LookupCAAWithServer is a server-parameterised version of LookupCAA.
 func LookupCAAWithServer(ctx context.Context, domain, server string) ([]string, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeCAA)
-	m.RecursionDesired = true
-	client := &dns.Client{Timeout: 5 * time.Second}
-	resp, _, err := client.ExchangeContext(ctx, m, server)
+	resp, err := d.ExchangeWithServer(ctx, server, domain, dns.TypeCAA)
 	if err != nil {
-		return nil, fmt.Errorf("error: dns query failed: %w", err)
+		return nil, err
 	}
-	var records []string
-	for _, rr := range resp.Answer {
-		if caa, ok := rr.(*dns.CAA); ok {
-			records = append(records, fmt.Sprintf("%d %s %s", caa.Flag, caa.Tag, caa.Value))
-		}
-	}
-	if len(records) == 0 {
-		return nil, fmt.Errorf("error: not found")
-	}
-	return records, nil
+	return formatCAA(resp.Answer)
 }
 
-// VerifyNSSECWithServer is a test-friendly version of VerifyNSSEC.
+// VerifyNSSECWithServer is a server-parameterised version of VerifyNSSEC.
 func VerifyNSSECWithServer(ctx context.Context, domain, server string) (bool, error) {
-	client := &dns.Client{Timeout: 5 * time.Second}
 	for _, qtype := range []uint16{dns.TypeNSEC, dns.TypeNSEC3} {
-		msg := new(dns.Msg)
-		msg.SetQuestion(dns.Fqdn(domain), qtype)
-		msg.RecursionDesired = true
-		resp, _, err := client.ExchangeContext(ctx, msg, server)
+		resp, err := d.ExchangeWithServer(ctx, server, domain, qtype)
 		if err == nil && resp.Rcode == dns.RcodeSuccess && len(resp.Answer) > 0 {
 			return true, nil
 		}
@@ -192,27 +148,19 @@ func VerifyNSSECWithServer(ctx context.Context, domain, server string) (bool, er
 	return false, nil
 }
 
-// CheckDNSBLWithServer queries the DNSBL for a given net.IP using the provided server.
-// This bypasses net.LookupIP so tests can control the IP under test.
-func CheckDNSBLWithServer(ctx context.Context, ip4 net.IP, blocklist, server string) (bool, error) {
-	ip4 = ip4.To4()
+// CheckDNSBLWithServer queries the DNSBL for a given net.IP using the provided
+// server, bypassing address resolution so callers can control the IP under test.
+func CheckDNSBLWithServer(ctx context.Context, ip net.IP, blocklist, server string) (bool, error) {
+	ip4 := firstIPv4([]net.IP{ip})
 	if ip4 == nil {
-		return false, fmt.Errorf("error: IPv4 required")
+		return false, fmt.Errorf("error: no IPv4 address for DNSBL check")
 	}
-	rev := fmt.Sprintf("%d.%d.%d.%d.%s", ip4[3], ip4[2], ip4[1], ip4[0], blocklist)
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(rev), dns.TypeA)
-	m.RecursionDesired = true
-	client := &dns.Client{Timeout: 5 * time.Second}
-	resp, _, err := client.ExchangeContext(ctx, m, server)
+	resp, err := d.ExchangeWithServer(ctx, server, dnsblQueryName(ip4, blocklist), dns.TypeA)
 	if err != nil {
-		return false, fmt.Errorf("error: dns query failed: %w", err)
+		return false, err
 	}
 	if resp.Rcode != dns.RcodeSuccess {
 		return false, nil
 	}
 	return len(resp.Answer) > 0, nil
 }
-
-// Ensure d import is used.
-var _ = d.LookupTXT

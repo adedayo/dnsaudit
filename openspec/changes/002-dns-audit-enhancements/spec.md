@@ -1,58 +1,150 @@
-# Specification: DNS Audit Enhancements for Trawl
+# Specification: DNS Audit Enhancements
+
+## Specification ID
+`002-dns-audit-enhancements`
+
+## Status
+`Implemented`
 
 ## Goal
-Enable Trawl to perform a comprehensive email security posture audit by extending the existing `dnsaudit` functionality. The enhancements will provide parsed DMARC policies, MTA‑STS detection, DNSSEC validation, DANE lookup, robust error handling, and a reusable Go library API.
+Provide a comprehensive email/DNS security posture audit via a CLI and a
+reusable Go library (`pkg/scanner`) covering SPF, DKIM, DMARC, MTA-STS, DNSSEC,
+DANE, CAA, PTR, DNSBL, NSEC/NSEC3 and Public Suffix validation.
 
 ## Background
-The original `dnsaudit` repository supplies basic DNS look‑ups (SPF, DKIM, DMARC) and a CLI. In Trawl we have integrated a thin scanner based on `github.com/miekg/dns`, but several capabilities are still missing, causing inaccurate UI displays (e.g., DMARC policy shown as **WEAK (NONE)**) and limited extensibility.
+The original repository supplied basic DNS look-ups (SPF, DKIM, DMARC) and a
+CLI. The scanner is implemented in `pkg/scanner` on top of `github.com/miekg/dns`
+and shares a single query layer in `pkg/dns.go`.
 
 ## Functional Requirements
-1. **DMARC Parsing**
-   - Extract the `p=` tag from the DMARC TXT record and normalise it to one of `reject`, `quarantine`, `none`.
-   - Expose the parsed policy via `store.EmailPosture.DMARCPolicy`.
-2. **MTA‑STS Detection**
-   - Perform a TXT lookup for `_mta-sts.<domain>`.
-   - Return the raw value (or an empty string if not found).
-3. **DNSSEC Validation**
-   - Query `DNSKEY` records for the domain using `github.com/miekg/dns`.
-   - Return `enabled` when at least one DNSKEY is present and the response is successful, otherwise `not found`.
-4. **DANE Lookup**
-   - Retrieve TLSA records for the SMTP service (`_25._tcp.<domain>`).
-   - Return a comma‑separated list of formatted TLSA records (`usage selector matchingType certificate`).
-5. **Library API**
-   - Refactor the core lookup functions into a reusable package `pkg/scanner` exposing:
-     - `LookupSPF(domain string) (string, error)`
-     - `LookupDKIM(domain, selector string) (string, error)`
-     - `LookupDMARC(domain string) (string, error)`
-     - `CheckMTASts(domain string) (string, error)`
-     - `CheckDNSSEC(domain string) (string, error)`
-     - `CheckDANE(domain string) (string, error)`
-6. **Error Normalisation**
-   - All functions must return errors prefixed with `error:` and a `not found` sentinel when appropriate.
-7. **Context Propagation**
-   - Each API call receives a `context.Context` with a timeout (default 15 s) and respects cancellation.
-8. **Testing**
-   - Add unit tests for each function using a mock DNS server or pre‑recorded fixtures.
-9. **Documentation**
-   - Provide GoDoc comments for all exported functions and a README explaining usage.
 
-## Non‑Functional Requirements
-- Use only `github.com/miekg/dns` for DNS queries (no `net.LookupTXT`).
-- Keep the public API stable for future extensions.
-- Ensure the implementation does not increase the overall scan latency beyond 2 seconds per domain.
+1. **DMARC Parsing**
+   - `scanner.LookupDMARC` extracts the `p=` tag from `_dmarc.<domain>` and
+     lower-cases it. Expected values: `reject`, `quarantine`, `none`; unknown
+     values are returned verbatim.
+   - `dnsaudit.LookupDMARC` (in `pkg/dmarc.go`) returns the **raw** DMARC record
+     and is retained for backwards compatibility.
+2. **DMARC Reporting** — see spec `007`.
+3. **MTA-STS Detection**
+   - TXT lookup of `_mta-sts.<domain>`; returns the first record or
+     `error: not found`.
+4. **DNSSEC Validation**
+   - `scanner.CheckDNSSEC` queries `DNSKEY`. Returns the string `enabled` when at
+     least one DNSKEY is present, otherwise the string `not found`. Note that
+     `not found` is a **value**, not an error.
+5. **Denial of Existence** — see spec `006`.
+6. **DANE / TLSA** — see spec `003`.
+7. **CAA** — see spec `004`.
+8. **Reputation & Reverse DNS** — see spec `005`.
+9. **Public Suffix** — see spec `006`.
+10. **Platform-independent resolution** — see spec `008`.
+11. **Library API** (`pkg/scanner`; every function takes `context.Context` first)
+    ```go
+    LookupSPF(ctx, domain) (string, error)
+    LookupDKIM(ctx, domain, selector string) (string, error)
+    LookupDMARC(ctx, domain) (string, error)
+    ParseDMARCReporting(ctx, domain) (rua, ruf []string, err error)
+    CheckMTASts(ctx, domain) (string, error)
+    CheckDNSSEC(ctx, domain) (string, error)
+    CheckDANE(ctx, domain) (string, error)
+    LookupTLASSMTP(ctx, domain) (string, error)
+    LookupTLSAHTTPS(ctx, domain) (string, error)
+    LookupTLSASSH(ctx, domain) (string, error)
+    LookupCAA(ctx, domain) ([]string, error)
+    ReverseLookupPTR(ctx, domain) (string, error)
+    VerifyNSSEC(ctx, domain) (bool, error)
+    CheckDNSBL(ctx, domain, blocklist string) (bool, error)
+    ValidatePublicSuffix(ctx, domain) (bool, error)
+    ```
+12. **Shared query layer** (`pkg`, package `dnsaudit`)
+    ```go
+    Resolvers() []string
+    SetResolvers(servers ...string)
+    ResetResolverCache()
+    QueryTimeout() time.Duration          // per-resolver attempt budget
+    TotalTimeout() time.Duration          // whole-lookup budget
+    SetQueryTimeout(d time.Duration)
+    SetTotalTimeout(d time.Duration)
+    Exchange(ctx, name string, qtype uint16) (*dns.Msg, error)     // RCODE checked
+    ExchangeRaw(ctx, name string, qtype uint16) (*dns.Msg, error)  // RCODE not checked
+    ExchangeWithServer(ctx, server, name string, qtype uint16) (*dns.Msg, error)
+    LookupTXT(ctx, domain) ([]string, error)
+    LookupIP(ctx, host) ([]net.IP, error)
+    ```
+    - Queries are retried over TCP when a UDP response is truncated.
+    - Queries fail over to the next configured resolver on transport errors or
+      timeouts.
+13. **Error Normalisation**
+    - All errors are prefixed with `error:`.
+    - Sentinels:
+      | Sentinel | Meaning |
+      |---|---|
+      | `error: not found` | No matching record |
+      | `error: dns query failed: <cause>` | Transport/resolution failure on all resolvers |
+      | `error: dns response code <n>` | Non-success RCODE |
+      | `error: no DNS resolvers available` | No resolver could be determined |
+      | `error: context deadline exceeded` | Context expired before the query |
+      | `error: invalid resolver address <addr>` | Malformed `--resolver` value |
+    - The former `error: could not read resolv.conf: …` sentinel has been
+      **removed**: a missing or unreadable resolver configuration is no longer
+      fatal (see spec `008`).
+14. **Context Propagation**
+    - The lookup budget is the sooner of `dnsaudit.TotalTimeout()` (10 s by
+      default) and the context deadline; each individual resolver attempt is
+      bounded by `dnsaudit.QueryTimeout()` (2 s by default) so that failover is
+      fast. Both are configurable — see spec `008`.
+15. **CLI Commands**
+    | Command | Function |
+    |---|---|
+    | `spf` | `LookupSPF` |
+    | `dkim -s <selector>` | `LookupDKIM` |
+    | `dmarc` | `LookupDMARC` |
+    | `dmarc-report` | `LookupDMARC` + `ParseDMARCReporting` |
+    | `mtasts` | `CheckMTASts` |
+    | `dnssec` | `CheckDNSSEC` |
+    | `nssec` | `VerifyNSSEC` |
+    | `smtp-dane` | `LookupTLASSMTP` |
+    | `https-dane` | `LookupTLSAHTTPS` |
+    | `ssh-dane` | `LookupTLSASSH` |
+    | `caa` | `LookupCAA` |
+    | `ptr` | `ReverseLookupPTR` |
+    | `dnsbl -b <zone>` | `CheckDNSBL` |
+    | `public-suffix` | `ValidatePublicSuffix` |
+    | `version` | Build metadata (also available as `--version`) |
+    - Global flags: `--config`, `--resolver` (repeatable), `--query-timeout`,
+      `--timeout`.
+    - `version` reports the release version, commit, build date, Go version and
+      `GOOS/GOARCH`. Values are injected at build time via `-ldflags` into
+      `main.version`, `main.commit` and `main.date`, and fall back to the Go
+      module build information embedded by `go install`.
+    - Commands write records to stdout and errors to stderr, and return a
+      non-zero exit code on failure.
+16. **Testing**
+    - `pkg/scanner/helpers.go` exposes `…WithServer` variants that accept an
+      explicit resolver address, so `pkg/scanner` tests can run against a local
+      mock DNS server. They delegate to `dnsaudit.ExchangeWithServer` and share
+      all parsing/formatting logic with the public API. They are **not** part of
+      the stable public API.
+    - `CheckDNSBLWithServer` accepts a `net.IP` directly, bypassing address
+      resolution.
+    - `pkg/scanner/resolver_test.go` additionally exercises the public API by
+      pointing `dnsaudit.SetResolvers` at a mock server.
+
+## Non-Functional Requirements
+- DNS queries use `github.com/miekg/dns` exclusively; the OS resolver
+  (`net.LookupIP`) is no longer used, so `--resolver` is honoured everywhere and
+  behaviour is identical on all platforms.
+- The tool builds and runs on Linux, macOS and Windows with no build tags
+  required by consumers.
 
 ## Acceptance Criteria
-- UI shows the correct DMARC badge (`STRICT (REJECT)`, `QUARANTINE`, or `WEAK (NONE)`).
-- New fields appear in the `EmailPosture` model and are persisted correctly.
+- CLI prints the correct DMARC policy for `reject` / `quarantine` / `none`.
+- `go build ./...` succeeds for `GOOS=linux`, `GOOS=darwin` and `GOOS=windows`.
 - All unit tests pass (`go test ./...`).
-- Documentation builds without lint errors.
+- `golangci-lint run ./...` is clean.
 - No regression of existing SPF/DKIM functionality.
 
 ## OpenSpec Metadata
 - Change ID: `002-dns-audit-enhancements`
 - Owner: `@dayo`
 - Target Version: `v0.2.0`
-- Status: `proposed`
-
----
-*This spec is stored under `openspec/changes/002-dns-audit-enhancements/spec.md` and is ready for implementation.*

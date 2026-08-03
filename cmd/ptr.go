@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
 	"github.com/spf13/cobra"
+
+	"github.com/adedayo/dnsaudit/pkg/scanner"
 )
 
 // ptrCmd performs a reverse DNS (PTR) lookup.
@@ -16,7 +17,7 @@ var ptrCmd = &cobra.Command{
 	Long: `Resolve the domain to its IP address and perform a reverse DNS (PTR) lookup.
 PTR records are used to verify that an IP address maps back to the expected hostname,
 which is a key indicator of legitimate mail server configuration and can flag
-shadow infrastructure or unauthorized systems.`,
+shadow infrastructure or unauthorised systems.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
