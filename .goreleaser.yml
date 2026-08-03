@@ -51,6 +51,53 @@ checksum:
 sboms:
   - artifacts: archive
 
+# Homebrew. A Cask rather than a Formula: GoReleaser deprecated `brews` in
+# v2.10 and removed it in v2.16, because Formulas that install pre-compiled
+# binaries were always a workaround, and Homebrew now expects Casks for this.
+#
+# The tap is adedayo/homebrew-tap, the same one checkmate publishes to, and
+# the token is read from HOMEBREW_GITHUB_TOKEN to match. Pushing to another
+# repository needs a token with contents:write on it — the workflow's default
+# GITHUB_TOKEN is scoped to this repository and cannot do it.
+#
+# Casks must live in the tap's Casks directory, which is the default here.
+# checkmate's Formula sits at the tap root; the two coexist.
+#
+# `skip_upload` is templated on the presence of the token so that a release
+# still succeeds when the secret is absent: the cask is skipped and everything
+# else publishes. Reading it with `index` rather than `.Env.HOMEBREW_GITHUB_TOKEN`
+# is deliberate, since the latter aborts the whole release when the variable is
+# unset.
+homebrew_casks:
+  - name: dnsaudit
+    ids:
+      - default
+    binaries:
+      - dnsaudit
+    homepage: "https://github.com/adedayo/dnsaudit"
+    description: "Audit security posture by interrogating the DNS."
+    caveats: "To get started, run: dnsaudit --help"
+    skip_upload: '{{ if index .Env "HOMEBREW_GITHUB_TOKEN" }}false{{ else }}true{{ end }}'
+    repository:
+      owner: adedayo
+      name: homebrew-tap
+      branch: master
+      token: '{{ index .Env "HOMEBREW_GITHUB_TOKEN" }}'
+    commit_author:
+      name: "Dayo Adetoye"
+      email: dayo.dev@gmail.com
+    commit_msg_template: "dnsaudit: update to {{ .Tag }}"
+    # The binaries are not notarised — Apple charges yearly for that — so
+    # macOS would quarantine them and report the download as damaged. Clearing
+    # the attribute on install is Homebrew's documented workaround for
+    # unsigned casks.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/dnsaudit"]
+          end
+
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 

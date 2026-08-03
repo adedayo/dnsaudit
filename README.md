@@ -15,6 +15,16 @@ required.
 
 ## Install
 
+**Homebrew** (macOS and Linux)
+
+```sh
+brew install adedayo/tap/dnsaudit
+```
+
+Upgrade with `brew upgrade dnsaudit`.
+
+**Direct download**
+
 Download a binary for your platform from the
 [latest release](https://github.com/adedayo/dnsaudit/releases/latest). Every
 release ships signed checksums and an SBOM alongside the archives.

@@ -37,3 +37,10 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Publishing the Homebrew cask writes to adedayo/homebrew-tap, which
+          # the default GITHUB_TOKEN cannot reach: it is scoped to this
+          # repository only. Needs contents:write on the tap repository.
+          #
+          # When the secret is absent this is empty, and .goreleaser.yml skips
+          # the cask rather than failing the release.
+          HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
