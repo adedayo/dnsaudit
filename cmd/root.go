@@ -39,7 +39,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
+	vantage "github.com/adedayo/vantage/pkg"
 )
 
 var (
@@ -56,7 +56,7 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "dnsaudit",
+	Use:   "vantage",
 	Short: "DNS security auditing tool for analysing your external attack surface.",
 	// Long is assembled in Execute, because the banner carries the version and
 	// that is only resolved at run time.
@@ -71,7 +71,7 @@ func Execute() {
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 	rootCmd.Long = banner() + `
 
-dnsaudit analyses DNS records to identify security posture issues
+vantage analyses DNS records to identify security posture issues
 across your domains. It helps security teams and CISOs understand their
 external attack surface by auditing records such as SPF, DKIM, DMARC, DANE,
 CAA, DNSSEC, PTR, DNSBL listings, and more.`
@@ -88,17 +88,17 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dnsaudit.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vantage.yaml)")
 	rootCmd.PersistentFlags().StringSliceVar(&resolvers, "resolver", nil,
 		"DNS resolver(s) to use, e.g. --resolver 1.1.1.1 --resolver 8.8.8.8:53. "+
 			"Defaults to the platform's configured nameservers (resolv.conf on Linux/macOS, "+
 			"the IP Helper API on Windows), falling back to public resolvers.")
-	rootCmd.PersistentFlags().DurationVar(&queryTimeout, "query-timeout", dnsaudit.DefaultQueryTimeout,
+	rootCmd.PersistentFlags().DurationVar(&queryTimeout, "query-timeout", vantage.DefaultQueryTimeout,
 		"How long to wait for a single resolver before failing over to the next one. "+
 			"Raise this on slow or lossy links.")
-	rootCmd.PersistentFlags().DurationVar(&totalTimeout, "timeout", dnsaudit.DefaultTotalTimeout,
+	rootCmd.PersistentFlags().DurationVar(&totalTimeout, "timeout", vantage.DefaultTotalTimeout,
 		"Overall time budget for a lookup, across all resolvers.")
-	rootCmd.PersistentFlags().IntVar(&queryRate, "query-rate", dnsaudit.DefaultQueryRate,
+	rootCmd.PersistentFlags().IntVar(&queryRate, "query-rate", vantage.DefaultQueryRate,
 		"Maximum DNS queries per second per resolver. Keeps concurrent audits from "+
 			"tripping rate limiting, which would turn into spurious findings. 0 disables the limit.")
 
@@ -106,26 +106,26 @@ func init() {
 }
 
 // initResolvers applies the --resolver flag, if supplied. When it is not
-// supplied, the dnsaudit package auto-discovers resolvers in a platform
+// supplied, the vantage package auto-discovers resolvers in a platform
 // independent way, so no action is needed here.
 func initResolvers() {
 	if len(resolvers) > 0 {
-		dnsaudit.SetResolvers(resolvers...)
+		vantage.SetResolvers(resolvers...)
 	}
 }
 
 // initTimeouts applies the --query-timeout and --timeout flags. Flags win over
-// the DNSAUDIT_QUERY_TIMEOUT / DNSAUDIT_TIMEOUT environment variables, which in
+// the VANTAGE_QUERY_TIMEOUT / VANTAGE_TIMEOUT environment variables, which in
 // turn win over the built-in defaults.
 func initTimeouts() {
 	if rootCmd.PersistentFlags().Changed("query-timeout") {
-		dnsaudit.SetQueryTimeout(queryTimeout)
+		vantage.SetQueryTimeout(queryTimeout)
 	}
 	if rootCmd.PersistentFlags().Changed("timeout") {
-		dnsaudit.SetTotalTimeout(totalTimeout)
+		vantage.SetTotalTimeout(totalTimeout)
 	}
 	if rootCmd.PersistentFlags().Changed("query-rate") {
-		dnsaudit.SetQueryRate(queryRate)
+		vantage.SetQueryRate(queryRate)
 	}
 }
 
@@ -142,9 +142,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".dnsaudit" (without extension).
+		// Search config in home directory with name ".vantage" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".dnsaudit")
+		viper.SetConfigName(".vantage")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

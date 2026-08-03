@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Network describes the egress a check requires. Declaring it lets --no-network

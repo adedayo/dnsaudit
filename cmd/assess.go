@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // recordCheck describes a single-record command in the terms the shared runner
@@ -108,7 +108,7 @@ func runPlain(ctx context.Context, target string, check recordCheck) error {
 // isNotFound reports whether an error means the record is definitively absent,
 // as opposed to the lookup having failed.
 func isNotFound(err error) bool {
-	return errors.Is(err, dnsaudit.ErrNotFound) ||
+	return errors.Is(err, vantage.ErrNotFound) ||
 		strings.Contains(err.Error(), "not found")
 }
 

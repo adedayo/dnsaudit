@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/netattr"
+	"github.com/adedayo/vantage/pkg/netattr"
 )
 
 func netIDs(t *testing.T, obs NetworkObservation) []string {
@@ -40,7 +40,7 @@ func TestNetworkAttributionReportsPrivateAddressLeakage(t *testing.T) {
 
 	findings := NetworkAttribution(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-NET-002", findings[0].ID)
+	assert.Equal(t, "SURF-NET-002", findings[0].ID)
 	assert.Equal(t, "high", findings[0].Confidence.String())
 }
 
@@ -58,7 +58,7 @@ func TestNetworkAttributionDownConfidencesNullRouting(t *testing.T) {
 
 	findings := NetworkAttribution(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-NET-002", findings[0].ID)
+	assert.Equal(t, "SURF-NET-002", findings[0].ID)
 	assert.Equal(t, "low", findings[0].Confidence.String())
 }
 
@@ -81,7 +81,7 @@ func TestNetworkAttributionSaysNothingAboutUnattributedAddresses(t *testing.T) {
 // A host at a provider that serves none of the domain's own infrastructure is
 // the inventory observation the rule exists for.
 // A coverage gap produces false negatives, not false positives: an address
-// whose provider file was unavailable reads as unattributed, DNSA-NET-001
+// whose provider file was unavailable reads as unattributed, SURF-NET-001
 // stops firing, and the report looks like a domain with no third-party
 // hosting. Reproduced live against amazon.com with the AWS ranges withheld:
 // every address rendered "(unattributed)" and nothing said why.
@@ -173,7 +173,7 @@ func TestNetworkAttributionReportsHostOutsideTheEstate(t *testing.T) {
 			}},
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-NET-001"}, netIDs(t, obs))
+	assert.Equal(t, []string{"SURF-NET-001"}, netIDs(t, obs))
 }
 
 // A host with several addresses at one provider is one fact about that host.
@@ -270,7 +270,7 @@ func TestNetworkAttributionReportsEveryLeakedPrivateAddress(t *testing.T) {
 			},
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-NET-002", "DNSA-NET-002"}, netIDs(t, obs))
+	assert.Equal(t, []string{"SURF-NET-002", "SURF-NET-002"}, netIDs(t, obs))
 }
 
 // A host inside the estate is not remarkable and must not be reported, or the
@@ -329,7 +329,7 @@ func TestNetworkAttributionJurisdictionNeedsAnExpectation(t *testing.T) {
 	assert.Empty(t, netIDs(t, obs))
 
 	obs.ExpectedJurisdictions = []string{"GB", "IE"}
-	assert.Equal(t, []string{"DNSA-NET-003"}, netIDs(t, obs))
+	assert.Equal(t, []string{"SURF-NET-003"}, netIDs(t, obs))
 
 	obs.ExpectedJurisdictions = []string{"gb", "us"} // case must not matter
 	assert.Empty(t, netIDs(t, obs))

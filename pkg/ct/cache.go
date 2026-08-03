@@ -25,7 +25,7 @@ func CacheDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error: cannot determine the user cache directory: %w", err)
 	}
-	return filepath.Join(base, "dnsaudit", "ct"), nil
+	return filepath.Join(base, "vantage", "ct"), nil
 }
 
 // cacheEntry is the on-disk form.

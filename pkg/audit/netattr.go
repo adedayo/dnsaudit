@@ -7,8 +7,8 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/netattr"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/netattr"
 )
 
 // fetchNetworkAttribution resolves the domain's own infrastructure and any

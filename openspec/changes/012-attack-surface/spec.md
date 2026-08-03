@@ -39,18 +39,18 @@ type TakeoverFingerprint struct {
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-TKO-001` | CNAME to a known service and target returns NXDOMAIN | Critical |
-| `DNSA-TKO-002` | CNAME to a known service with a claim-me HTTP fingerprint | Critical |
-| `DNSA-TKO-003` | CNAME to a known service, resolves, but unverified | Medium |
-| `DNSA-TKO-004` | Dangling CNAME to an unknown target (NXDOMAIN) | High |
-| `DNSA-TKO-005` | NS delegation to a nameserver that does not resolve | High |
-| `DNSA-TKO-006` | A/AAAA pointing into unallocated cloud space | Medium |
+| `SURF-TKO-001` | CNAME to a known service and target returns NXDOMAIN | Critical |
+| `SURF-TKO-002` | CNAME to a known service with a claim-me HTTP fingerprint | Critical |
+| `SURF-TKO-003` | CNAME to a known service, resolves, but unverified | Medium |
+| `SURF-TKO-004` | Dangling CNAME to an unknown target (NXDOMAIN) | High |
+| `SURF-TKO-005` | NS delegation to a nameserver that does not resolve | High |
+| `SURF-TKO-006` | A/AAAA pointing into unallocated cloud space | Medium |
 
 Requirements:
 - The fingerprint database is **embedded data** (`pkg/takeover/fingerprints.json`)
   with a schema version and provenance, updatable without a code change.
 - HTTP corroboration is optional (`standard`+ profiles) and MUST be a plain GET
-  with no authentication and no attempt to claim the resource. `dnsaudit`
+  with no authentication and no attempt to claim the resource. `vantage`
   detects; it never exploits.
 - Wildcard-aware: a domain with a wildcard record produces false NXDOMAIN
   reasoning, so the wildcard check below MUST run first and suppress or
@@ -61,9 +61,9 @@ Attempt AXFR against **each** authoritative nameserver.
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-AXFR-001` | AXFR succeeds — entire zone disclosed | High |
-| `DNSA-AXFR-002` | AXFR partially succeeds or leaks SOA/record count | Medium |
-| `DNSA-AXFR-003` | IXFR permitted | Medium |
+| `SURF-AXFR-001` | AXFR succeeds — entire zone disclosed | High |
+| `SURF-AXFR-002` | AXFR partially succeeds or leaks SOA/record count | Medium |
+| `SURF-AXFR-003` | IXFR permitted | Medium |
 
 The transferred zone MUST NOT be written to disk by default; the finding records
 the record count and a bounded sample as evidence. `--save-zone <dir>` opts in.
@@ -73,17 +73,17 @@ actively querying the target's nameservers.
 ## Nameserver and Delegation Hygiene
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-NS-001` | Single authoritative nameserver — no redundancy | Medium |
-| `DNSA-NS-002` | All nameservers in one ASN / one provider | Low |
-| `DNSA-NS-003` | All nameservers in one /24 | Medium |
-| `DNSA-NS-004` | Parent and child NS sets disagree | Medium |
-| `DNSA-NS-005` | Lame delegation — NS does not answer authoritatively | High |
-| `DNSA-NS-006` | Missing glue for in-bailiwick nameservers | Medium |
-| `DNSA-NS-007` | Nameserver open to recursion — amplification vector | High |
-| `DNSA-NS-008` | SOA serial mismatch between nameservers | Low |
-| `DNSA-NS-009` | Nameserver domain expired or unregistered | Critical |
+| `SURF-NS-001` | Single authoritative nameserver — no redundancy | Medium |
+| `SURF-NS-002` | All nameservers in one ASN / one provider | Low |
+| `SURF-NS-003` | All nameservers in one /24 | Medium |
+| `SURF-NS-004` | Parent and child NS sets disagree | Medium |
+| `SURF-NS-005` | Lame delegation — NS does not answer authoritatively | High |
+| `SURF-NS-006` | Missing glue for in-bailiwick nameservers | Medium |
+| `SURF-NS-007` | Nameserver open to recursion — amplification vector | High |
+| `SURF-NS-008` | SOA serial mismatch between nameservers | Low |
+| `SURF-NS-009` | Nameserver domain expired or unregistered | Critical |
 
-`DNSA-NS-009` covers the takeover-by-expired-nameserver case, which is
+`SURF-NS-009` covers the takeover-by-expired-nameserver case, which is
 catastrophic and cheap to detect.
 
 ## Wildcard Detection
@@ -92,9 +92,9 @@ wildcard.
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-WILD-001` | Wildcard A/AAAA record present | Info |
-| `DNSA-WILD-002` | Wildcard MX present | Low |
-| `DNSA-WILD-003` | Wildcard CNAME to a third-party service | Medium |
+| `SURF-WILD-001` | Wildcard A/AAAA record present | Info |
+| `SURF-WILD-002` | Wildcard MX present | Low |
+| `SURF-WILD-003` | Wildcard CNAME to a third-party service | Medium |
 
 Results feed the takeover and enumeration checks as described above.
 
@@ -110,31 +110,31 @@ into an attack-surface inventory.
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-CT-001` | Certificates issued for hosts that no longer resolve | Info |
-| `DNSA-CT-002` | Internal-looking hostnames disclosed in public certificates | Medium |
-| `DNSA-CT-003` | Wildcard certificate covering the apex | Info |
+| `SURF-CT-001` | Certificates issued for hosts that no longer resolve | Info |
+| `SURF-CT-002` | Internal-looking hostnames disclosed in public certificates | Medium |
+| `SURF-CT-003` | Wildcard certificate covering the apex | Info |
 
-`DNSA-CT-002` uses a conservative keyword heuristic (`vpn`, `internal`, `dev`,
+`SURF-CT-002` uses a conservative keyword heuristic (`vpn`, `internal`, `dev`,
 `staging`, `jira`, `admin`, …) and MUST be reported at `Medium` confidence.
 
-`DNSA-CT-001` and `DNSA-CT-002` MUST report once per group rather than once per
+`SURF-CT-001` and `SURF-CT-002` MUST report once per group rather than once per
 name — all vanished names together, and internal-looking names grouped by the
 keyword that matched — with every name retained as evidence. A large estate can
 put hundreds of names in the logs, and one finding per name would bury the rest
 of the report.
 
-Caching to `~/.cache/dnsaudit` with a documented TTL is required so repeat runs
+Caching to `~/.cache/vantage` with a documented TTL is required so repeat runs
 do not hammer public services.
 
 ## Network Attribution
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-NET-001` | Host resolves into a cloud provider outside the known estate | Info |
-| `DNSA-NET-002` | Host resolves to a private/reserved address (RFC 1918, CGNAT) — internal leakage | Medium |
-| `DNSA-NET-003` | Host resolves to an address in a different jurisdiction than expected | Info |
+| `SURF-NET-001` | Host resolves into a cloud provider outside the known estate | Info |
+| `SURF-NET-002` | Host resolves to a private/reserved address (RFC 1918, CGNAT) — internal leakage | Medium |
+| `SURF-NET-003` | Host resolves to an address in a different jurisdiction than expected | Info |
 
 ASN and provider mapping uses embedded published cloud IP ranges; no external
-lookup is required for `DNSA-NET-002`.
+lookup is required for `SURF-NET-002`.
 
 ## Ethical and Safety Requirements
 1. All checks MUST be **passive or minimally interactive**. No brute force, no

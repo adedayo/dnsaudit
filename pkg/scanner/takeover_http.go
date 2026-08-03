@@ -101,7 +101,7 @@ func fetchBody(ctx context.Context, client *http.Client, url string) (string, in
 	if err != nil {
 		return "", 0, err
 	}
-	req.Header.Set("User-Agent", "dnsaudit")
+	req.Header.Set("User-Agent", "vantage")
 
 	resp, err := client.Do(req)
 	if err != nil {

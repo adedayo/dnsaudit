@@ -1,4 +1,4 @@
-package dnsaudit
+package vantage
 
 import (
 	"fmt"
@@ -12,15 +12,15 @@ import (
 const DefaultPort = "53"
 
 // ResolverEnvVar is the name of the environment variable that can be used to
-// override the resolvers used by dnsaudit. It accepts a comma-separated list of
+// override the resolvers used by vantage. It accepts a comma-separated list of
 // addresses, with or without a port, e.g.:
 //
-//	DNSAUDIT_RESOLVERS="1.1.1.1,8.8.8.8:53,[2606:4700:4700::1111]:53"
-const ResolverEnvVar = "DNSAUDIT_RESOLVERS"
+//	VANTAGE_RESOLVERS="1.1.1.1,8.8.8.8:53,[2606:4700:4700::1111]:53"
+const ResolverEnvVar = "VANTAGE_RESOLVERS"
 
 // FallbackResolvers are well-known public resolvers used as a last resort when
 // the operating system's resolver configuration cannot be determined. This
-// guarantees that dnsaudit remains functional on any platform, including
+// guarantees that vantage remains functional on any platform, including
 // minimal containers and Windows hosts with unusual network configurations.
 var FallbackResolvers = []string{
 	"1.1.1.1:53",                // Cloudflare
@@ -60,7 +60,7 @@ func ResetResolverCache() {
 // will be used for DNS queries. Resolution order is:
 //
 //  1. Explicit override set via SetResolvers (e.g. the --resolver CLI flag).
-//  2. The DNSAUDIT_RESOLVERS environment variable.
+//  2. The VANTAGE_RESOLVERS environment variable.
 //  3. Platform-specific system configuration:
 //     - Unix-like (Linux, macOS, BSD): /etc/resolv.conf
 //     - Windows: GetAdaptersAddresses (IP Helper API)

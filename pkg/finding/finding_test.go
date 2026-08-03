@@ -117,10 +117,10 @@ func TestZeroValuesAreSafe(t *testing.T) {
 }
 
 func TestNewFromCatalogue(t *testing.T) {
-	f := New("DNSA-SPF-004", "example.com",
+	f := New("SURF-SPF-004", "example.com",
 		DNSEvidence("example.com", "TXT", "v=spf1 +all", "1.1.1.1:53"))
 
-	entry, ok := Lookup("DNSA-SPF-004")
+	entry, ok := Lookup("SURF-SPF-004")
 	require.True(t, ok)
 
 	assert.Equal(t, entry.Title, f.Title)
@@ -135,11 +135,11 @@ func TestNewFromCatalogue(t *testing.T) {
 func TestNewPanicsOnUnknownID(t *testing.T) {
 	// An unknown ID is a programming error. Failing loudly in tests is far
 	// better than emitting a finding with no title or guidance at runtime.
-	assert.Panics(t, func() { New("DNSA-NOPE-001", "example.com") })
+	assert.Panics(t, func() { New("SURF-NOPE-001", "example.com") })
 }
 
 func TestWithSeverityRecordsTheReason(t *testing.T) {
-	f := New("DNSA-SPF-001", "example.com").
+	f := New("SURF-SPF-001", "example.com").
 		WithSeverity(SeverityLow, "Reduced because the domain sends no mail.")
 
 	assert.Equal(t, SeverityLow, f.Severity)

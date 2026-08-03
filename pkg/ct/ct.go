@@ -92,7 +92,7 @@ func (c crtSh) Search(ctx context.Context, domain string) ([]Certificate, error)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "dnsaudit")
+	req.Header.Set("User-Agent", "vantage")
 	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: crtShTimeout}

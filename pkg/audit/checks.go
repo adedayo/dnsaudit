@@ -8,10 +8,10 @@ import (
 
 	"github.com/miekg/dns"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // This file adapts the existing checks to the Check interface and registers
@@ -49,7 +49,7 @@ func notFound(findings ...finding.Finding) (Outcome, error) {
 
 // isAbsent reports whether an error means the record is definitively absent.
 func isAbsent(err error) bool {
-	return errors.Is(err, dnsaudit.ErrNotFound) || strings.Contains(err.Error(), "not found")
+	return errors.Is(err, vantage.ErrNotFound) || strings.Contains(err.Error(), "not found")
 }
 
 func spfCheck() Check {

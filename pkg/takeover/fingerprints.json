@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "updated": "2026-08-03",
-  "provenance": "Curated by the dnsaudit maintainers from vendor documentation and the publicly documented behaviour of each service. Every entry cites the source that establishes whether an unclaimed name can be claimed by a third party. Community research, in particular the can-i-take-over-xyz project, informed which services were worth investigating; the CNAME suffixes and statuses here were confirmed against vendor documentation rather than copied.",
+  "provenance": "Curated by the vantage maintainers from vendor documentation and the publicly documented behaviour of each service. Every entry cites the source that establishes whether an unclaimed name can be claimed by a third party. Community research, in particular the can-i-take-over-xyz project, informed which services were worth investigating; the CNAME suffixes and statuses here were confirmed against vendor documentation rather than copied.",
   "notes": "status is one of: vulnerable (an unclaimed name can be claimed by anybody), edge-case (claimable only under conditions this tool cannot observe from DNS), not-vulnerable (the service prevents a third party claiming the name). nxdomain records whether a dangling name leaves the CNAME target unresolvable, which is what makes the condition detectable from DNS alone. When nxdomain is false the target always resolves and only an HTTP response body distinguishes a claimed name from an unclaimed one.",
   "fingerprints": [
     {

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/audit"
-	"github.com/adedayo/dnsaudit/pkg/ct"
+	"github.com/adedayo/vantage/pkg/audit"
+	"github.com/adedayo/vantage/pkg/ct"
 )
 
 // stubSource stands in for a Certificate Transparency log.
@@ -75,7 +75,7 @@ func TestCTCheckDetectsCertificateForAVanishedHost(t *testing.T) {
 	for _, f := range out.Findings {
 		ids = append(ids, f.ID)
 	}
-	assert.Contains(t, ids, "DNSA-CT-001")
+	assert.Contains(t, ids, "SURF-CT-001")
 
 	// The live name must not also be reported, or the rule would fire on every
 	// host an organisation has ever certified.

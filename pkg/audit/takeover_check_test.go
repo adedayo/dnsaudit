@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/audit"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/audit"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // startZone runs a mock resolver so that retrieval can be exercised end to end.
@@ -30,8 +30,8 @@ func startZone(t *testing.T, handler func(w dns.ResponseWriter, r *dns.Msg)) {
 	go func() { _ = srv.ActivateAndServe() }()
 	t.Cleanup(func() { _ = srv.Shutdown() })
 
-	dnsaudit.SetResolvers(pc.LocalAddr().String())
-	t.Cleanup(func() { dnsaudit.ResetResolverCache() })
+	vantage.SetResolvers(pc.LocalAddr().String())
+	t.Cleanup(func() { vantage.ResetResolverCache() })
 }
 
 // A dangling alias to a claimable service is the condition the whole check
@@ -70,7 +70,7 @@ func TestTakeoverCheckDetectsDanglingAlias(t *testing.T) {
 	for _, f := range out.Findings {
 		ids = append(ids, f.ID)
 	}
-	assert.Contains(t, ids, "DNSA-TKO-001")
+	assert.Contains(t, ids, "SURF-TKO-001")
 }
 
 // A resolver that fails must not manufacture a Critical finding. This is the
@@ -170,7 +170,7 @@ func TestTakeoverCheckReportsHTTPCorroboration(t *testing.T) {
 	for _, f := range out.Findings {
 		ids = append(ids, f.ID)
 	}
-	assert.Contains(t, ids, "DNSA-TKO-002")
+	assert.Contains(t, ids, "SURF-TKO-002")
 }
 
 // Having looked and found the name in use, the check must not fall back to
@@ -219,7 +219,7 @@ func TestTakeoverCheckKeepsUnverifiedWhenCorroborationFails(t *testing.T) {
 	for _, f := range out.Findings {
 		ids = append(ids, f.ID)
 	}
-	assert.Contains(t, ids, "DNSA-TKO-003")
+	assert.Contains(t, ids, "SURF-TKO-003")
 }
 
 // --no-network must not send HTTP traffic. A check that quietly egressed after

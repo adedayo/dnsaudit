@@ -3,7 +3,7 @@
 // for spreadsheets, and SARIF for code-scanning platforms.
 //
 // Renderers never write to stderr and never emit partial fragments, so that
-// `dnsaudit ... -o json > out.json` always yields a parseable document.
+// `vantage ... -o json > out.json` always yields a parseable document.
 package report
 
 import (
@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Format identifies an output renderer.

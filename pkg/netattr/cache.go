@@ -32,7 +32,7 @@ func CacheDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error: cannot determine the user cache directory: %w", err)
 	}
-	return filepath.Join(base, "dnsaudit", "netattr"), nil
+	return filepath.Join(base, "vantage", "netattr"), nil
 }
 
 // fetchCached returns a range file, from disk when it is fresh enough and from
@@ -121,7 +121,7 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "dnsaudit")
+	req.Header.Set("User-Agent", "vantage")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

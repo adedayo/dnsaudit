@@ -41,9 +41,9 @@ exists.
 citing its controlling RFC section. The account below is chronological, since
 the order the work landed in explains several of the decisions.
 
-DKIM key analysis (`DNSA-DKIM-001`–`006`) and TLS-RPT
-(`DNSA-TLSRPT-001`–`002`) have landed, the latter as a new check and command.
-Recursive SPF evaluation has also landed (`DNSA-SPF-006`, `007`, `009`, `010`):
+DKIM key analysis (`SURF-DKIM-001`–`006`) and TLS-RPT
+(`SURF-TLSRPT-001`–`002`) have landed, the latter as a new check and command.
+Recursive SPF evaluation has also landed (`SURF-SPF-006`, `007`, `009`, `010`):
 includes and redirects are now followed through the resolver cache to count
 DNS-querying mechanisms against the RFC 7208 ten-lookup limit, count void
 lookups, detect include cycles and flag unusable include targets.
@@ -53,15 +53,15 @@ tests. `pkg/dns.go` advertised no EDNS0 buffer, so responses carrying large SPF
 trees failed to unpack and were reported as an unreachable resolver — disabling
 the check on the domains it matters most for. And `pkg/audit/cache.go` treated
 each 255-byte string of a long TXT record as a separate record, which fragmented
-2048-bit DKIM keys into false `DNSA-DKIM-006` "malformed" findings and would
+2048-bit DKIM keys into false `SURF-DKIM-006` "malformed" findings and would
 have made one long SPF record look like a duplicate.
 
 Still outstanding at that point: DNSSEC chain validation.
 
-MX hygiene (`DNSA-MX-001`–`004`), CAA tree-climbing (`DNSA-CAA-001`–`005`),
-BIMI (`DNSA-BIMI-001`–`003`) and the two remaining DMARC rules — organisational-
-domain fallback (`DNSA-DMARC-009`) and external-destination verification
-(`DNSA-DMARC-006`) — have now landed, taking the catalogue to 40 rules. BIMI is
+MX hygiene (`SURF-MX-001`–`004`), CAA tree-climbing (`SURF-CAA-001`–`005`),
+BIMI (`SURF-BIMI-001`–`003`) and the two remaining DMARC rules — organisational-
+domain fallback (`SURF-DMARC-009`) and external-destination verification
+(`SURF-DMARC-006`) — have now landed, taking the catalogue to 40 rules. BIMI is
 a new check and command; CAA now climbs the domain tree and stops below the
 public suffix, so a policy inherited from a parent is reported as inherited
 rather than absent.
@@ -72,11 +72,11 @@ organisational-domain fallback depends on this, since a subdomain with no policy
 of its own usually does not exist. SERVFAIL remains an error: the resolver
 genuinely could not answer.
 
-`DNSA-MX-005` (all exchangers within one ASN) is deferred to Phase 3, where
+`SURF-MX-005` (all exchangers within one ASN) is deferred to Phase 3, where
 spec `012` introduces the network attribution it needs. Implementing it now
 would mean inventing a proxy for an ASN and labelling it as one.
 
-MTA-STS (`DNSA-MTASTS-001`–`008`) has now landed, taking the catalogue to 48
+MTA-STS (`SURF-MTASTS-001`–`008`) has now landed, taking the catalogue to 48
 rules and leaving DNSSEC chain validation as the last outstanding work in this
 phase. This is the first check to leave DNS: the policy file is fetched from
 `https://mta-sts.<domain>/.well-known/mta-sts.txt`, with redirects refused and
@@ -94,7 +94,7 @@ The standalone `mtasts` command records retrieved evidence alongside the DNS
 answers, and that evidence is absent under `--no-network`, so a report never
 implies a document was inspected when it was not.
 
-DNSSEC chain validation (`DNSA-DNSSEC-001`–`008`) has now landed, completing
+DNSSEC chain validation (`SURF-DNSSEC-001`–`008`) has now landed, completing
 Phase 2 and taking the catalogue to 56 rules. The `dnssec` check no longer
 reports DNSKEY presence, which conflated a signed zone with a validated one:
 it now retrieves the parent's DS record, matches it against the published keys
@@ -123,22 +123,22 @@ Subdomain takeover, zone transfer, delegation hygiene, wildcard detection,
 CT enumeration, network attribution. Introduces an embedded fingerprint database
 and optional third-party egress, so it needs the profile machinery from `010`.
 
-**Complete.** Wildcard detection (`DNSA-WILD-001`–`003`), nameserver and
-delegation hygiene (`DNSA-NS-001`–`008`), subdomain takeover
-(`DNSA-TKO-001`–`005`), zone transfer (`DNSA-AXFR-001`, `002`), network
-attribution (`DNSA-NET-001`–`003`) and CT enumeration (`DNSA-CT-001`–`003`),
-taking the catalogue to 81 rules. `DNSA-NS-009` and `DNSA-AXFR-003` are not
+**Complete.** Wildcard detection (`SURF-WILD-001`–`003`), nameserver and
+delegation hygiene (`SURF-NS-001`–`008`), subdomain takeover
+(`SURF-TKO-001`–`005`), zone transfer (`SURF-AXFR-001`, `002`), network
+attribution (`SURF-NET-001`–`003`) and CT enumeration (`SURF-CT-001`–`003`),
+taking the catalogue to 81 rules. `SURF-NS-009` and `SURF-AXFR-003` are not
 implemented; the reasons are recorded below.
 
 **Ordering.** Wildcard detection comes first because `012` requires it to run
 before takeover. In a zone with a wildcard every name resolves, so a dangling
-CNAME's target answers too and the NXDOMAIN reasoning behind `DNSA-TKO-001` and
+CNAME's target answers too and the NXDOMAIN reasoning behind `SURF-TKO-001` and
 `004` is unavailable. Takeover then precedes the rest as the highest-impact
 check in the spec.
 
 **Naming.** The wildcard check registers as `wild`, not `wildcard`: the
 catalogue invariant requires a rule's ID segment to match its check name, the
-spec fixes the IDs as `DNSA-WILD-*`, and the IDs are the public contract.
+spec fixes the IDs as `SURF-WILD-*`, and the IDs are the public contract.
 
 #### Wildcard detection
 A wildcard is asserted only when at least two high-entropy labels return the
@@ -170,7 +170,7 @@ here is unreachable for some users too — but at reduced confidence, since
 silence from one vantage point is weaker evidence than a reply omitting the AA
 bit.
 
-`DNSA-NS-009` (expired nameserver domain) needs registration data, which is not
+`SURF-NS-009` (expired nameserver domain) needs registration data, which is not
 DNS and needs its own source and egress decision. It is not implemented.
 
 #### Subdomain takeover
@@ -188,13 +188,13 @@ below, is the sanctioned way to widen the set.
 An alias pointing back inside the audited domain is never a takeover, because
 the target is already the organisation's. Without that guard, "www to the apex"
 is reported as third-party exposure whenever an organisation's own domain
-matches a fingerprint suffix. Unverified `DNSA-TKO-003` reports are raised only
+matches a fingerprint suffix. Unverified `SURF-TKO-003` reports are raised only
 for services where an abandoned name can be claimed by anybody, not for
 edge-case services whose conditions this tool cannot observe: a CDN alias such
 as `bbc.co.uk`'s Fastly record would otherwise fire on most CDN-fronted domains
 and teach readers to skip the rule.
 
-`DNSA-TKO-002` (HTTP corroboration) retrieves the body served by an aliased
+`SURF-TKO-002` (HTTP corroboration) retrieves the body served by an aliased
 host and matches it against the fingerprint. It is assessed before the NXDOMAIN
 rules, because a service's own "this name is unclaimed" page is stronger
 evidence than a missing DNS record. HTTPS is tried first and HTTP second, since
@@ -205,7 +205,7 @@ bounded at 64KB.
 A failed retrieval sets `Fetched` false rather than an empty body, so the
 absence of a match is never read as "this name is in use" — the same shape as
 the six defects described under *Testing convention* below. Suppression of the
-unverified `DNSA-TKO-003` is keyed on whether corroboration actually succeeded
+unverified `SURF-TKO-003` is keyed on whether corroboration actually succeeded
 for that host, not on whether corroboration was enabled for the run.
 
 #### Network attribution
@@ -215,7 +215,7 @@ Fastly. Ranges are cached for seven days; when a source is unreachable a stale
 entry is used and its age is disclosed in the report, an old answer being more
 use than none.
 
-Loopback and unspecified addresses are excluded from `DNSA-NET-001`. Publishing
+Loopback and unspecified addresses are excluded from `SURF-NET-001`. Publishing
 `127.0.0.1` for a name is a null-routing practice, not a disclosure of internal
 addressing, and reporting it would fire on a deliberate configuration.
 
@@ -233,7 +233,7 @@ from provider region naming and is an approximation of where data sits, not a
 legal determination; `normaliseRegion` strips a GCP zone letter but not an AWS
 trailing digit, the two schemes being different.
 
-`DNSA-NET-001` and `DNSA-NET-003` are assessed once per host per provider, not
+`SURF-NET-001` and `SURF-NET-003` are assessed once per host per provider, not
 once per address. A host answering with four addresses in one region is one
 fact about that host; the first live run against `bbc.co.uk` with enumeration
 produced 262 findings for 73 hosts, which is the volume at which a reader stops
@@ -245,7 +245,7 @@ addresses are still reported individually, each being a distinct disclosure.
 provider publication fails; if one fails and the rest succeed the run continues,
 and that is the check's most dangerous failure mode. Coverage gaps cause false
 negatives, not false positives: with the AWS ranges missing, every AWS address
-reads as unattributed, `DNSA-NET-001` stops firing, and the report is
+reads as unattributed, `SURF-NET-001` stops firing, and the report is
 indistinguishable from a domain using no third-party hosting. Reproduced against
 `amazon.com` with the AWS file withheld — twelve plainly-AWS addresses rendered
 `(unattributed)`, state `ok`, grade A, and nothing anywhere said why.
@@ -300,7 +300,7 @@ distinction in shared code: records prefixed `warning:` or `provenance:`
 describe the run, everything else describes the domain. A differ can then
 exclude run state without pattern-matching prose that may later be reworded.
 
-This unblocked `DNSA-NS-002` and `DNSA-MX-005`. Both are reported at low
+This unblocked `SURF-NS-002` and `SURF-MX-005`. Both are reported at low
 confidence when every host sits under the audited domain itself: `google.com`'s
 `ns1`–`ns4.google.com` are vanity names that reveal nothing about the underlying
 provider, and a concentration finding derived from them would be an inference
@@ -328,14 +328,14 @@ bad afternoon is a check people turn off. When no source answers, every failure
 is named, since a caller told only about the last one would investigate the
 wrong service.
 
-`DNSA-CT-002` matches whole labels against a deliberately short keyword list and
+`SURF-CT-002` matches whole labels against a deliberately short keyword list and
 skips the registrable domain, and is reported at medium confidence. Substring
 matching would fire "dev" on `developer.example.com`, and an organisation called
 Test Ltd is not leaking an internal hostname by owning `test.com`. A keyword
 heuristic suggests; it does not establish.
 
 Both per-name CT rules report once per group rather than once per name. The
-first run against `bbc.co.uk` produced 83 findings, 60 of them `DNSA-CT-002`,
+first run against `bbc.co.uk` produced 83 findings, 60 of them `SURF-CT-002`,
 and every one was a true positive — the keyword list was doing its job. The
 defect was that 60 rows carried three facts: the zone uses `.test.`, `.stage.`
 and `admin.` conventions. Once a reader knows the convention, the forty-third
@@ -345,7 +345,7 @@ problems, and a report nobody finishes is not made better by being correct.
 
 That triage exposed a second defect one level up. Grading counted a
 medium-confidence keyword guess exactly as heavily as an unsigned delegation
-the resolver had proved, so `DNSA-CT-002` alone could saturate the `Medium >= 3`
+the resolver had proved, so `SURF-CT-002` alone could saturate the `Medium >= 3`
 threshold and set the grade before any other check spoke. The catalogue records
 a confidence for every rule and the grade was the one place it mattered most,
 which is where it was being discarded. Grade version 2 demotes a finding one
@@ -368,10 +368,10 @@ republishing the estate the finding says should not have been available.
 `--save-zone` is not implemented, satisfying the spec's requirement that nothing
 be written to disk by default.
 
-Two deliberate deviations from `012`. `DNSA-AXFR-003` (IXFR permitted) is not
+Two deliberate deviations from `012`. `SURF-AXFR-003` (IXFR permitted) is not
 implemented: a server permitting IXFR but not AXFR is rare and the rule would
 mostly restate `001`. And the check is in `surface` and `deep` only, not
-`standard`, because `standard` is what a bare `dnsaudit audit example.com` runs
+`standard`, because `standard` is what a bare `vantage audit example.com` runs
 — an AXFR attempt against every nameserver of a domain the user has not yet
 thought about conflicts with the same spec's requirement that the tool not
 resemble an attack, and some intrusion detection systems alert on it.
@@ -424,8 +424,8 @@ A related fix in shared code: the runner retains a failing check's records, so
 the evidence of which servers were tried survives the failure path and a blocked
 network can be told from a broken tool.
 
-**Not implemented in Phase 3:** `DNSA-NS-009` (needs registration data),
-`DNSA-AXFR-003` (would mostly restate `DNSA-AXFR-001`) and `DNSA-TKO-006`
+**Not implemented in Phase 3:** `SURF-NS-009` (needs registration data),
+`SURF-AXFR-003` (would mostly restate `SURF-AXFR-001`) and `SURF-TKO-006`
 (unallocated cloud space, which needs range data at a granularity the published
 provider files do not offer). Retrofitting the end-to-end testing convention to
 the checks that predate it remains outstanding.

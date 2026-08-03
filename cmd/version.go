@@ -9,7 +9,7 @@ import (
 )
 
 // Build metadata. These are populated at release time via -ldflags by
-// GoReleaser (see .goreleaser.yml). When dnsaudit is built with plain
+// GoReleaser (see .goreleaser.yml). When vantage is built with plain
 // `go build` or installed with `go install`, they fall back to the values
 // embedded by the Go toolchain in the module's build info.
 var (
@@ -76,11 +76,11 @@ func orUnknown(s string) string {
 // versionString renders the one-line version summary used by --version.
 func versionString() string {
 	v, c, d := buildInfo()
-	return fmt.Sprintf("dnsaudit %s (commit %s, built %s, %s, %s/%s)",
+	return fmt.Sprintf("vantage %s (commit %s, built %s, %s, %s/%s)",
 		v, c, d, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
 
-// banner returns the preamble shown at the top of `dnsaudit --help`: what the
+// banner returns the preamble shown at the top of `vantage --help`: what the
 // tool is for, which version is running and who wrote it.
 //
 // The version is resolved at run time rather than written into a constant, so
@@ -88,7 +88,7 @@ func versionString() string {
 // binary they actually have.
 func banner() string {
 	v, _, _ := buildInfo()
-	return fmt.Sprintf(`See what an attacker sees. Use dnsaudit to audit your external attack surface posture from public DNS records.
+	return fmt.Sprintf(`See what an attacker sees. Use vantage to audit the attack surface an organisation exposes, from the vantage point of someone looking at it.
 
 	Version: %s
 
@@ -98,9 +98,9 @@ func banner() string {
 // versionCmd prints detailed build information.
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the dnsaudit version and build information.",
+	Short: "Print the vantage version and build information.",
 	Long: `Print the version, source commit, build date, Go toolchain and target
-platform of this dnsaudit binary. Useful when reporting issues.`,
+platform of this vantage binary. Useful when reporting issues.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		v, c, d := buildInfo()

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // publicKey returns a base64 SubjectPublicKeyInfo RSA key of the given size, so
@@ -28,9 +28,9 @@ func publicKey(t *testing.T, bits int) string {
 // 1.24 onwards refuses to generate keys this small: crypto/rsa returns
 // "512-bit keys are insecure" from GenerateKey.
 //
-// The restriction is on generation, not parsing, so dnsaudit can still detect
+// The restriction is on generation, not parsing, so vantage can still detect
 // weak keys published in the wild — which is the whole point of
-// DNSA-DKIM-002. Dropping this case to satisfy the toolchain would have
+// SURF-DKIM-002. Dropping this case to satisfy the toolchain would have
 // removed coverage of a finding that still fires against real domains, so the
 // key is embedded instead. It is a public key with no corresponding secret in
 // the tree, and is never used to sign or verify anything.
@@ -83,7 +83,7 @@ func TestParseDKIMWrappedKey(t *testing.T) {
 	assert.Equal(t, 2048, key.Bits)
 }
 
-// TestParseDKIMWeakKeyIsStillParsable guards the detection of DNSA-DKIM-002
+// TestParseDKIMWeakKeyIsStillParsable guards the detection of SURF-DKIM-002
 // against the toolchain itself. Go restricts *generating* small RSA keys, and
 // if a future release extended that to parsing, every weak key in the wild
 // would silently become "malformed" instead of "weak" — downgrading a specific,
@@ -104,16 +104,16 @@ func TestDKIM(t *testing.T) {
 		probed  bool
 		wantIDs []string
 	}{
-		"no keys found by probing":    {probed: true, wantIDs: []string{"DNSA-DKIM-001"}},
-		"no key at supplied selector": {wantIDs: []string{"DNSA-DKIM-001"}},
+		"no keys found by probing":    {probed: true, wantIDs: []string{"SURF-DKIM-001"}},
+		"no key at supplied selector": {wantIDs: []string{"SURF-DKIM-001"}},
 		"healthy 2048-bit key":        {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 2048)}},
-		"1024-bit key":                {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 1024)}, wantIDs: []string{"DNSA-DKIM-003"}},
-		"512-bit key":                 {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + weakRSAKey512}, wantIDs: []string{"DNSA-DKIM-002"}},
-		"test mode":                   {records: map[string]string{"selector1": "v=DKIM1; t=y; p=" + publicKey(t, 2048)}, wantIDs: []string{"DNSA-DKIM-005"}},
+		"1024-bit key":                {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + publicKey(t, 1024)}, wantIDs: []string{"SURF-DKIM-003"}},
+		"512-bit key":                 {records: map[string]string{"selector1": "v=DKIM1; k=rsa; p=" + weakRSAKey512}, wantIDs: []string{"SURF-DKIM-002"}},
+		"test mode":                   {records: map[string]string{"selector1": "v=DKIM1; t=y; p=" + publicKey(t, 2048)}, wantIDs: []string{"SURF-DKIM-005"}},
 		// A revoked or malformed key leaves the domain with no usable key
 		// either, so both findings are correct and both are needed.
-		"revoked key":   {records: map[string]string{"selector1": "v=DKIM1; p="}, wantIDs: []string{"DNSA-DKIM-001", "DNSA-DKIM-004"}},
-		"malformed key": {records: map[string]string{"selector1": "v=DKIM1; p=!!!"}, wantIDs: []string{"DNSA-DKIM-001", "DNSA-DKIM-006"}},
+		"revoked key":   {records: map[string]string{"selector1": "v=DKIM1; p="}, wantIDs: []string{"SURF-DKIM-001", "SURF-DKIM-004"}},
+		"malformed key": {records: map[string]string{"selector1": "v=DKIM1; p=!!!"}, wantIDs: []string{"SURF-DKIM-001", "SURF-DKIM-006"}},
 	}
 
 	for name, tc := range tests {
@@ -152,5 +152,5 @@ func TestDKIMHealthyKeyAlongsideRetiredOne(t *testing.T) {
 		ParseDKIM("selector2", "v=DKIM1; p="),
 	}
 
-	assert.ElementsMatch(t, []string{"DNSA-DKIM-004"}, ids(DKIM(origin, keys, true)))
+	assert.ElementsMatch(t, []string{"SURF-DKIM-004"}, ids(DKIM(origin, keys, true)))
 }

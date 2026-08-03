@@ -7,7 +7,7 @@
 `Proposed`
 
 ## Summary
-Makes `dnsaudit` a first-class tool for autonomous and semi-autonomous AI agents:
+Makes `vantage` a first-class tool for autonomous and semi-autonomous AI agents:
 self-describing via a machine-readable capability manifest, deterministic and
 unambiguous in its contracts, token-efficient in its output, safe by
 construction, and directly consumable through a built-in Model Context Protocol
@@ -29,14 +29,14 @@ invites an agent to take confident action on a weak inference.
 
 ## 1. Capability Discovery
 
-### `dnsaudit capabilities`
+### `vantage capabilities`
 Emits a JSON manifest describing the entire tool surface. This is the entry
 point an agent reads first.
 
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "dnsaudit", "version": "v1.4.0" },
+  "tool": { "name": "vantage", "version": "v1.4.0" },
   "description": "Assess the external security posture of a domain from DNS.",
   "safety": {
     "read_only": true,
@@ -60,7 +60,7 @@ point an agent reads first.
           "description": "Breadth of assessment.",
           "cost_hint": { "quick": "low", "deep": "high" } }
       ],
-      "output_schema": "dnsaudit://schema/result",
+      "output_schema": "vantage://schema/result",
       "exit_codes": { "0": "clean", "3": "findings at or above threshold" },
       "idempotent": true,
       "typical_duration_seconds": 6,
@@ -72,10 +72,10 @@ point an agent reads first.
   ],
   "checks": [
     { "name": "spf", "title": "Sender Policy Framework",
-      "findings": ["DNSA-SPF-001", "..."],
+      "findings": ["SURF-SPF-001", "..."],
       "network": ["dns"], "profiles": ["quick","standard","deep","email"] }
   ],
-  "finding_catalogue_uri": "dnsaudit://catalogue"
+  "finding_catalogue_uri": "vantage://catalogue"
 }
 ```
 
@@ -87,17 +87,17 @@ Requirements:
   user's goal to an invocation without guessing.
 - `cost_hint` and `typical_duration_seconds` let an agent budget before running.
 
-### `dnsaudit schema [name]`
+### `vantage schema [name]`
 Emits JSON Schema (draft 2020-12) for `result`, `finding`, `baseline` and
 `manifest`. Agents validate before parsing and detect version mismatch early.
 
-### `dnsaudit catalogue [--id DNSA-SPF-004]`
+### `vantage catalogue [--id SURF-SPF-004]`
 Emits the finding catalogue — every ID with title, severity, description,
 remediation, references and compliance tags. This lets an agent explain and
 remediate a finding **without inventing guidance**, which is the single most
 valuable property for reducing hallucinated security advice.
 
-### `dnsaudit explain <finding-id>`
+### `vantage explain <finding-id>`
 Human- and agent-readable expansion of one catalogue entry, including a worked
 remediation example.
 
@@ -152,7 +152,7 @@ only the interesting targets.
 
 ## 4. MCP Server Mode
 
-### `dnsaudit mcp`
+### `vantage mcp`
 Runs a Model Context Protocol server over stdio, exposing the tool natively to
 MCP-capable agents without shelling out or parsing text.
 
@@ -166,8 +166,8 @@ MCP-capable agents without shelling out or parsing text.
 | `dns_compare_baseline` | Drift against a supplied baseline (spec `013`) |
 | `dns_lookup_record` | Single-record retrieval for targeted follow-up |
 
-**Resources exposed**: `dnsaudit://catalogue`, `dnsaudit://schema/{name}`,
-`dnsaudit://capabilities`.
+**Resources exposed**: `vantage://catalogue`, `vantage://schema/{name}`,
+`vantage://capabilities`.
 
 **Prompts exposed**: reusable templates such as
 `assess_email_spoofing_risk(domain)` and `triage_portfolio(domains_file)` that
@@ -196,7 +196,7 @@ enforced by the tool rather than by operator discipline.
 | `--timeout` | 10s (spec `008`) | Bound wall-clock cost |
 | `--no-network` | off | Restrict to DNS only; disables HTTP-dependent checks |
 | `--allow-domains` / `--deny-domains` | – | Restrict targets to an authorised scope |
-| `DNSAUDIT_SCOPE_FILE` | – | Externally supplied authorised-scope list |
+| `VANTAGE_SCOPE_FILE` | – | Externally supplied authorised-scope list |
 
 Requirements:
 1. When a scope list is configured, targets outside it MUST be **refused**, with

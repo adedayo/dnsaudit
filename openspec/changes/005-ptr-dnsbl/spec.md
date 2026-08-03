@@ -11,7 +11,7 @@ Two reputation-oriented checks:
 - **PTR**: resolve the domain to IP addresses and reverse-look-up the first one.
 - **DNSBL**: resolve the domain to an IPv4 address and query a DNS blocklist zone.
 
-Both use `dnsaudit.LookupIP` (not the OS resolver), so they honour `--resolver`
+Both use `vantage.LookupIP` (not the OS resolver), so they honour `--resolver`
 and behave identically on Linux, macOS and Windows — see spec `008`.
 
 ## PTR
@@ -20,7 +20,7 @@ and behave identically on Linux, macOS and Windows — see spec `008`.
 `scanner.ReverseLookupPTR(ctx, domain) (string, error)`
 
 ### Behaviour
-1. Resolve A/AAAA records via `dnsaudit.LookupIP`.
+1. Resolve A/AAAA records via `vantage.LookupIP`.
 2. Build the reverse name with `dns.ReverseAddr` for the **first** address.
 3. Query `PTR` and return the first answer.
 
@@ -34,7 +34,7 @@ and behave identically on Linux, macOS and Windows — see spec `008`.
 
 ### CLI
 ```
-dnsaudit ptr example.com
+vantage ptr example.com
 ```
 
 ## DNSBL
@@ -58,7 +58,7 @@ dnsaudit ptr example.com
 
 ### CLI
 ```
-dnsaudit dnsbl example.com --blocklist zen.spamhaus.org
+vantage dnsbl example.com --blocklist zen.spamhaus.org
 ```
 Default blocklist: `zen.spamhaus.org` (flag `-b/--blocklist`).
 

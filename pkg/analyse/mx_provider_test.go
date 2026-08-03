@@ -20,7 +20,7 @@ func TestMXSingleProviderReportsOneOperator(t *testing.T) {
 		{Preference: 10, Host: "alt1.aspmx.l.google.com", Resolves: true, Provider: "google.com"},
 		{Preference: 20, Host: "alt2.aspmx.l.google.com", Resolves: true, Provider: "google.com"},
 	}
-	assert.Contains(t, mxIDs(hosts), "DNSA-MX-005")
+	assert.Contains(t, mxIDs(hosts), "SURF-MX-005")
 }
 
 // Two operators is the arrangement the rule exists to encourage.
@@ -29,15 +29,15 @@ func TestMXSingleProviderIsQuietWithTwoOperators(t *testing.T) {
 		{Preference: 10, Host: "mx.example-mail.com", Resolves: true, Provider: "example-mail.com"},
 		{Preference: 20, Host: "backup.other-mail.net", Resolves: true, Provider: "other-mail.net"},
 	}
-	assert.NotContains(t, mxIDs(hosts), "DNSA-MX-005")
+	assert.NotContains(t, mxIDs(hosts), "SURF-MX-005")
 }
 
-// DNSA-MX-004 already describes the single-exchanger case in full.
+// SURF-MX-004 already describes the single-exchanger case in full.
 func TestMXSingleProviderDefersToTheSingleExchangerRule(t *testing.T) {
 	hosts := []MXHost{{Preference: 10, Host: "mx.example-mail.com", Resolves: true, Provider: "example-mail.com"}}
 	ids := mxIDs(hosts)
-	assert.Contains(t, ids, "DNSA-MX-004")
-	assert.NotContains(t, ids, "DNSA-MX-005")
+	assert.Contains(t, ids, "SURF-MX-004")
+	assert.NotContains(t, ids, "SURF-MX-005")
 }
 
 // An exchanger whose provider could not be established may be the second
@@ -47,7 +47,7 @@ func TestMXSingleProviderDeclinesOnIncompleteData(t *testing.T) {
 		{Preference: 10, Host: "mx.example-mail.com", Resolves: true, Provider: "example-mail.com"},
 		{Preference: 20, Host: "localhost", Resolves: true, Provider: ""},
 	}
-	assert.NotContains(t, mxIDs(hosts), "DNSA-MX-005")
+	assert.NotContains(t, mxIDs(hosts), "SURF-MX-005")
 }
 
 // A null MX is a complete policy statement: the domain accepts no mail, so
@@ -66,7 +66,7 @@ func TestMXSingleProviderDownConfidencesSelfNamedExchangers(t *testing.T) {
 
 	var confidence string
 	for _, f := range MX(Origin{Target: "example.com"}, hosts, true) {
-		if f.ID == "DNSA-MX-005" {
+		if f.ID == "SURF-MX-005" {
 			confidence = f.Confidence.String()
 		}
 	}

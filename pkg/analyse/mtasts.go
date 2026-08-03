@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // MTASTSMinMaxAge is the shortest policy lifetime worth having, in seconds.
@@ -148,7 +148,7 @@ func MTASTS(o Origin, records []string, policy MTASTSPolicy, mxHosts []string) [
 	name := "_mta-sts." + strings.TrimSuffix(target, ".")
 
 	if len(records) == 0 {
-		return append(findings, finding.New("DNSA-MTASTS-001", target,
+		return append(findings, finding.New("SURF-MTASTS-001", target,
 			o.txtEvidence(name, "no v=STSv1 record")))
 	}
 
@@ -156,7 +156,7 @@ func MTASTS(o Origin, records []string, policy MTASTSPolicy, mxHosts []string) [
 	ev := o.txtEvidence(name, record.Raw)
 
 	if !record.Valid {
-		return append(findings, finding.New("DNSA-MTASTS-001", target, ev).
+		return append(findings, finding.New("SURF-MTASTS-001", target, ev).
 			WithDescription("Specifically, "+record.Reason+"."))
 	}
 
@@ -169,11 +169,11 @@ func MTASTS(o Origin, records []string, policy MTASTSPolicy, mxHosts []string) [
 	if !policy.CertificateValid {
 		// An invalid certificate is why the policy is inert, and is more
 		// actionable than the unreachability it causes.
-		return append(findings, finding.New("DNSA-MTASTS-008", target, ev))
+		return append(findings, finding.New("SURF-MTASTS-008", target, ev))
 	}
 
 	if !policy.Valid {
-		f := finding.New("DNSA-MTASTS-002", target, ev)
+		f := finding.New("SURF-MTASTS-002", target, ev)
 		if policy.Reason != "" {
 			f = f.WithDescription("Specifically, " + policy.Reason + ".")
 		}
@@ -182,10 +182,10 @@ func MTASTS(o Origin, records []string, policy MTASTSPolicy, mxHosts []string) [
 
 	switch policy.Mode {
 	case "testing":
-		findings = append(findings, finding.New("DNSA-MTASTS-003", target, ev,
+		findings = append(findings, finding.New("SURF-MTASTS-003", target, ev,
 			finding.ComputedEvidence("mtasts.mode", policy.Mode)))
 	case "none":
-		findings = append(findings, finding.New("DNSA-MTASTS-004", target, ev,
+		findings = append(findings, finding.New("SURF-MTASTS-004", target, ev,
 			finding.ComputedEvidence("mtasts.mode", policy.Mode)))
 	}
 
@@ -207,19 +207,19 @@ func MTASTS(o Origin, records []string, policy MTASTSPolicy, mxHosts []string) [
 		}
 	}
 	if len(uncovered) > 0 {
-		findings = append(findings, finding.New("DNSA-MTASTS-005", target, ev,
+		findings = append(findings, finding.New("SURF-MTASTS-005", target, ev,
 			finding.ComputedEvidence("mtasts.uncovered_mx", strings.Join(uncovered, ", ")),
 			finding.ComputedEvidence("mtasts.policy_mx", strings.Join(policy.MX, ", "))))
 	}
 
 	if policy.ID != "" && record.ID != "" && policy.ID != record.ID {
-		findings = append(findings, finding.New("DNSA-MTASTS-006", target, ev,
+		findings = append(findings, finding.New("SURF-MTASTS-006", target, ev,
 			finding.ComputedEvidence("mtasts.txt_id", record.ID),
 			finding.ComputedEvidence("mtasts.policy_id", policy.ID)))
 	}
 
 	if policy.MaxAge < MTASTSMinMaxAge {
-		findings = append(findings, finding.New("DNSA-MTASTS-007", target, ev,
+		findings = append(findings, finding.New("SURF-MTASTS-007", target, ev,
 			finding.ComputedEvidence("mtasts.max_age", strconv.Itoa(policy.MaxAge))))
 	}
 

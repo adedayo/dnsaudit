@@ -48,7 +48,7 @@ func TestDelegationSingleNameserver(t *testing.T) {
 	// One nameserver must raise NS-001 and *not* also raise NS-003: a single
 	// server trivially occupies a single /24, and two findings for one defect
 	// would overstate the problem.
-	assert.Equal(t, []string{"DNSA-NS-001"}, delegationFindingIDs(t, d))
+	assert.Equal(t, []string{"SURF-NS-001"}, delegationFindingIDs(t, d))
 }
 
 func TestDelegationSingleNetwork(t *testing.T) {
@@ -60,7 +60,7 @@ func TestDelegationSingleNetwork(t *testing.T) {
 				healthy("ns2.provider.net", "192.0.2.2"),
 			},
 		}
-		assert.Equal(t, []string{"DNSA-NS-003"}, delegationFindingIDs(t, d))
+		assert.Equal(t, []string{"SURF-NS-003"}, delegationFindingIDs(t, d))
 	})
 
 	t.Run("different /24s are not", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestDelegationParentChildAgreement(t *testing.T) {
 		d := base
 		d.ParentNS = []string{"ns1.provider.net", "ns3.old.net"}
 		d.ParentChecked = true
-		assert.Equal(t, []string{"DNSA-NS-004"}, delegationFindingIDs(t, d))
+		assert.Equal(t, []string{"SURF-NS-004"}, delegationFindingIDs(t, d))
 	})
 
 	// Case and ordering are properties of the wire, not of the delegation.
@@ -132,7 +132,7 @@ func TestDelegationLame(t *testing.T) {
 		})
 
 		require.Len(t, findings, 1)
-		assert.Equal(t, "DNSA-NS-005", findings[0].ID)
+		assert.Equal(t, "SURF-NS-005", findings[0].ID)
 		assert.Equal(t, "high", findings[0].Confidence.String())
 	})
 
@@ -148,7 +148,7 @@ func TestDelegationLame(t *testing.T) {
 		})
 
 		require.Len(t, findings, 1)
-		assert.Equal(t, "DNSA-NS-005", findings[0].ID)
+		assert.Equal(t, "SURF-NS-005", findings[0].ID)
 		assert.Equal(t, "medium", findings[0].Confidence.String())
 	})
 }
@@ -166,7 +166,7 @@ func TestDelegationGlue(t *testing.T) {
 			ParentChecked: true,
 			Glue:          map[string][]string{"ns1.example.com": {"192.0.2.1"}},
 		}
-		assert.Equal(t, []string{"DNSA-NS-006"}, delegationFindingIDs(t, d))
+		assert.Equal(t, []string{"SURF-NS-006"}, delegationFindingIDs(t, d))
 	})
 
 	// Out-of-bailiwick nameservers need no glue, and demanding it would report
@@ -193,7 +193,7 @@ func TestDelegationOpenRecursion(t *testing.T) {
 		Domain:      "example.com",
 		Nameservers: []Nameserver{healthy("ns1.provider.net", "192.0.2.1"), open},
 	}
-	assert.Equal(t, []string{"DNSA-NS-007"}, delegationFindingIDs(t, d))
+	assert.Equal(t, []string{"SURF-NS-007"}, delegationFindingIDs(t, d))
 
 	// A probe that never ran is not a clean result.
 	untested := healthy("ns2.provider.net", "198.51.100.1")
@@ -211,7 +211,7 @@ func TestDelegationSerialMismatch(t *testing.T) {
 		Domain:      "example.com",
 		Nameservers: []Nameserver{healthy("ns1.provider.net", "192.0.2.1"), stale},
 	}
-	assert.Equal(t, []string{"DNSA-NS-008"}, delegationFindingIDs(t, d))
+	assert.Equal(t, []string{"SURF-NS-008"}, delegationFindingIDs(t, d))
 
 	// A server that returned no SOA has not disagreed about the serial; only
 	// the servers that answered are compared.
@@ -237,7 +237,7 @@ func TestDelegationSerialsCompareWithinProviderOnly(t *testing.T) {
 	lagging := healthy("dns2.p08.nsone.net", "198.51.100.2")
 	lagging.Provider, lagging.Serial = "nsone.net", 1656468022
 	d.Nameservers = append(d.Nameservers, lagging)
-	assert.Equal(t, []string{"DNSA-NS-008"}, delegationFindingIDs(t, d))
+	assert.Equal(t, []string{"SURF-NS-008"}, delegationFindingIDs(t, d))
 }
 
 func TestInBailiwick(t *testing.T) {

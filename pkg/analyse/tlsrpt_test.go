@@ -13,15 +13,15 @@ func TestTLSRPT(t *testing.T) {
 		records []string
 		wantIDs []string
 	}{
-		"no record":            {wantIDs: []string{"DNSA-TLSRPT-001"}},
+		"no record":            {wantIDs: []string{"SURF-TLSRPT-001"}},
 		"mailto destination":   {records: []string{"v=TLSRPTv1; rua=mailto:tls@example.com"}},
 		"https destination":    {records: []string{"v=TLSRPTv1; rua=https://reports.example.com/tls"}},
 		"several destinations": {records: []string{"v=TLSRPTv1; rua=mailto:a@example.com,mailto:b@example.com"}},
-		"missing rua":          {records: []string{"v=TLSRPTv1;"}, wantIDs: []string{"DNSA-TLSRPT-002"}},
+		"missing rua":          {records: []string{"v=TLSRPTv1;"}, wantIDs: []string{"SURF-TLSRPT-002"}},
 		// A scheme senders do not implement delivers no reports, so the record
 		// buys the operator nothing but false assurance.
-		"unsupported scheme": {records: []string{"v=TLSRPTv1; rua=ftp://example.com/reports"}, wantIDs: []string{"DNSA-TLSRPT-002"}},
-		"wrong version tag":  {records: []string{"v=TLSRPTv2; rua=mailto:tls@example.com"}, wantIDs: []string{"DNSA-TLSRPT-002"}},
+		"unsupported scheme": {records: []string{"v=TLSRPTv1; rua=ftp://example.com/reports"}, wantIDs: []string{"SURF-TLSRPT-002"}},
+		"wrong version tag":  {records: []string{"v=TLSRPTv2; rua=mailto:tls@example.com"}, wantIDs: []string{"SURF-TLSRPT-002"}},
 	}
 
 	for name, tc := range tests {

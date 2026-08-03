@@ -106,4 +106,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/adedayo/dnsaudit
+        - github.com/adedayo/vantage

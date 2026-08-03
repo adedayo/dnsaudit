@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Nameserver is one authoritative server, together with what querying it
@@ -68,7 +68,7 @@ func DelegationHygiene(o Origin, d Delegation) []finding.Finding {
 	}
 
 	if len(d.Nameservers) == 1 {
-		findings = append(findings, finding.New("DNSA-NS-001", target,
+		findings = append(findings, finding.New("SURF-NS-001", target,
 			finding.DNSEvidence(d.Domain, "NS", d.Nameservers[0].Host, o.Source),
 			finding.ComputedEvidence("ns.count", "1")))
 	}
@@ -100,7 +100,7 @@ func DelegationHygiene(o Origin, d Delegation) []finding.Finding {
 // a second one, not a defect.
 func singleProvider(o Origin, d Delegation) []finding.Finding {
 	if len(d.Nameservers) < 2 {
-		// One nameserver is already reported by DNSA-NS-001, and "all of the
+		// One nameserver is already reported by SURF-NS-001, and "all of the
 		// single nameserver is at one provider" says nothing further.
 		return nil
 	}
@@ -130,7 +130,7 @@ func singleProvider(o Origin, d Delegation) []finding.Finding {
 	}
 	sort.Strings(hosts)
 
-	f := finding.New("DNSA-NS-002", o.Target,
+	f := finding.New("SURF-NS-002", o.Target,
 		finding.ComputedEvidence("ns.provider", provider),
 		finding.ComputedEvidence("ns.hosts", strings.Join(hosts, ", ")),
 		finding.ComputedEvidence("ns.provider_basis", "registrable domain of the nameserver names"))
@@ -154,7 +154,7 @@ func singleProvider(o Origin, d Delegation) []finding.Finding {
 // the route, the rack and usually the power all fail together.
 func singleNetwork(o Origin, d Delegation) []finding.Finding {
 	if len(d.Nameservers) < 2 {
-		// With one nameserver DNSA-NS-001 already says everything there is to
+		// With one nameserver SURF-NS-001 already says everything there is to
 		// say; adding a second finding for one defect is noise.
 		return nil
 	}
@@ -189,7 +189,7 @@ func singleNetwork(o Origin, d Delegation) []finding.Finding {
 	}
 	sort.Strings(addresses)
 
-	return []finding.Finding{finding.New("DNSA-NS-003", o.Target,
+	return []finding.Finding{finding.New("SURF-NS-003", o.Target,
 		finding.ComputedEvidence("ns.prefix", prefix),
 		finding.ComputedEvidence("ns.addresses", strings.Join(addresses, ", ")))}
 }
@@ -209,7 +209,7 @@ func parentChildAgreement(o Origin, d Delegation) []finding.Finding {
 		return nil
 	}
 
-	return []finding.Finding{finding.New("DNSA-NS-004", o.Target,
+	return []finding.Finding{finding.New("SURF-NS-004", o.Target,
 		finding.ComputedEvidence("ns.parent", strings.Join(parent, ", ")),
 		finding.ComputedEvidence("ns.child", strings.Join(child, ", ")))}
 }
@@ -222,7 +222,7 @@ func lameDelegation(o Origin, d Delegation) []finding.Finding {
 			continue
 		}
 
-		f := finding.New("DNSA-NS-005", o.Target,
+		f := finding.New("SURF-NS-005", o.Target,
 			finding.ComputedEvidence("ns.host", ns.Host),
 			finding.ComputedEvidence("ns.answered", strconv.FormatBool(ns.Answered)))
 
@@ -255,7 +255,7 @@ func missingGlue(o Origin, d Delegation) []finding.Finding {
 		if len(d.Glue[strings.ToLower(ns.Host)]) > 0 {
 			continue
 		}
-		findings = append(findings, finding.New("DNSA-NS-006", o.Target,
+		findings = append(findings, finding.New("SURF-NS-006", o.Target,
 			finding.ComputedEvidence("ns.host", ns.Host)))
 	}
 	return findings
@@ -268,7 +268,7 @@ func openRecursion(o Origin, d Delegation) []finding.Finding {
 		if !ns.RecursionTested || !ns.OpenRecursive {
 			continue
 		}
-		findings = append(findings, finding.New("DNSA-NS-007", o.Target,
+		findings = append(findings, finding.New("SURF-NS-007", o.Target,
 			finding.ComputedEvidence("ns.host", ns.Host)))
 	}
 	return findings
@@ -323,7 +323,7 @@ func serialMismatch(o Origin, d Delegation) []finding.Finding {
 		if provider != "" {
 			evidence = append(evidence, finding.ComputedEvidence("ns.provider", provider))
 		}
-		findings = append(findings, finding.New("DNSA-NS-008", o.Target, evidence...))
+		findings = append(findings, finding.New("SURF-NS-008", o.Target, evidence...))
 	}
 	return findings
 }

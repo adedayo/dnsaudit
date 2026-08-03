@@ -21,7 +21,7 @@ plus `--fail-on` for pipeline gating.
 This is the foundational change: specs `010`–`014` all depend on it.
 
 ## Motivation
-`dnsaudit` currently retrieves records but does not interpret them. `spf
+`vantage` currently retrieves records but does not interpret them. `spf
 example.com` prints the record and exits `0` whether the record ends in `-all`
 or `+all`. The analyst supplies the judgement, so the output cannot be sorted,
 thresholded, trended, ingested by a SIEM, or used to fail a build.
@@ -36,7 +36,7 @@ New package `pkg/finding`.
 type Severity int // Info, Low, Medium, High, Critical
 
 type Finding struct {
-    ID          string            `json:"id"`           // e.g. "DNSA-SPF-004"
+    ID          string            `json:"id"`           // e.g. "SURF-SPF-004"
     Title       string            `json:"title"`
     Severity    Severity          `json:"severity"`
     Confidence  Confidence        `json:"confidence"`   // Low | Medium | High
@@ -60,7 +60,7 @@ type Evidence struct {
 ```
 
 ### Finding identifiers
-IDs are **stable and permanent**: `DNSA-<CHECK>-<NNN>`. Once published an ID is
+IDs are **stable and permanent**: `SURF-<CHECK>-<NNN>`. Once published an ID is
 never reassigned or given a different meaning; a retired check's ID is
 tombstoned. Agents and ticketing systems may key on them.
 
@@ -72,9 +72,9 @@ field, and every entry must carry a description, remediation guidance and at
 least one reference.
 
 Numbers are allocated by the specification that defines the rule, so the
-implemented set may be sparse (spec `011` reserves `DNSA-SPF-006`, `007`, `009`
+implemented set may be sparse (spec `011` reserves `SURF-SPF-006`, `007`, `009`
 and `010`, which are not yet implemented). Only rules the tool can actually
-perform appear in the catalogue, so `dnsaudit catalogue` never advertises a
+perform appear in the catalogue, so `vantage catalogue` never advertises a
 check that does not exist.
 
 ### Severity assignment
@@ -89,7 +89,7 @@ Every structured render emits one envelope, never interleaved fragments:
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "dnsaudit", "version": "v1.4.0" },
+  "tool": { "name": "vantage", "version": "v1.4.0" },
   "started_at": "2026-08-02T09:15:00Z",
   "finished_at": "2026-08-02T09:15:04Z",
   "resolvers": ["1.1.1.1:53"],
@@ -126,8 +126,8 @@ are unaffected. Findings are shown only when `--findings` is passed, or
 implicitly by the `audit` command (spec `010`).
 
 ### Catalogue access
-`dnsaudit catalogue [--check spf]` lists every finding the tool can raise, and
-`dnsaudit explain <id>` expands one entry. Both honour `--format json`.
+`vantage catalogue [--check spf]` lists every finding the tool can raise, and
+`vantage explain <id>` expands one entry. Both honour `--format json`.
 
 Publishing the catalogue is what allows a consumer — human or automated — to
 resolve a finding ID to reviewed, cited guidance rather than composing security
@@ -158,7 +158,7 @@ alongside the catalogue and are covered by tests.
 3. Every catalogue entry MUST have non-empty remediation text and at least one
    reference.
 4. Structured formats MUST write to stdout only; progress and diagnostics go to
-   stderr, so `dnsaudit ... -o json > out.json` is always valid JSON.
+   stderr, so `vantage ... -o json > out.json` is always valid JSON.
 5. Findings MUST carry evidence sufficient to reproduce the conclusion without
    re-running the tool.
 

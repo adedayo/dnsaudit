@@ -6,6 +6,7 @@ package scanner_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // signingKey generates a DNSKEY with usable RSA key material, so that digests
@@ -171,7 +172,18 @@ func TestFetchDNSSECZoneCollectsTheChain(t *testing.T) {
 func TestFetchDNSSECZoneDetectsAStaleDS(t *testing.T) {
 	key := signingKey(t, "stale.test")
 	stale := key.ToDS(dns.SHA256)
-	stale.Digest = "00" + stale.Digest[2:]
+	// The signing key is generated afresh each run, so the digest differs
+	// every time. Overwriting the first byte with a fixed value would be a
+	// no-op on the roughly 1 run in 256 whose digest already starts with it,
+	// leaving a valid DS and failing the test. Deriving the replacement from
+	// the current value guarantees a change.
+	if strings.HasPrefix(stale.Digest, "0") {
+		stale.Digest = "1" + stale.Digest[1:]
+	} else {
+		stale.Digest = "0" + stale.Digest[1:]
+	}
+	require.NotEqual(t, key.ToDS(dns.SHA256).Digest, stale.Digest,
+		"the DS must actually be corrupted for this test to mean anything")
 
 	addr, stop := serveZone(t, "stale.test", zoneOptions{key: key, ds: stale})
 	defer stop()

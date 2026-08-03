@@ -7,8 +7,8 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/ct"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/ct"
 )
 
 // ctSource is the log service used, indirected so that tests can substitute one

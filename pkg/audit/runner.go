@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Default concurrency limits. They are deliberately modest: the tool queries
@@ -126,7 +126,7 @@ func (r *Runner) Run(ctx context.Context, result *finding.Result, targets ...str
 			result.AddError(e)
 		}
 	}
-	result.Resolvers = dnsaudit.Resolvers()
+	result.Resolvers = vantage.Resolvers()
 	result.Finalise()
 	result.Summary.Grade = Grade(result.Findings)
 	result.Summary.GradeVersion = GradeVersion
@@ -194,7 +194,7 @@ func (r *Runner) runTarget(ctx context.Context, index int, target string) target
 			defer mu.Unlock()
 
 			switch {
-			case err != nil && errors.Is(err, dnsaudit.ErrNotFound):
+			case err != nil && errors.Is(err, vantage.ErrNotFound):
 				out.checks = append(out.checks, finding.CheckResult{
 					Check: name, Target: target, State: finding.StateNotFound,
 				})
@@ -260,7 +260,7 @@ func ClassifyError(check, target string, err error) finding.CheckError {
 		strings.Contains(msg, "no DNS resolvers") ||
 		strings.Contains(msg, "no resolvers"):
 		code, retryable = finding.ErrCodeResolverUnreachable, true
-	case errors.Is(err, dnsaudit.ErrNotFound) || strings.Contains(msg, "not found"):
+	case errors.Is(err, vantage.ErrNotFound) || strings.Contains(msg, "not found"):
 		code = finding.ErrCodeNotFound
 	case strings.Contains(msg, "network disabled"):
 		code = finding.ErrCodeNetworkDisabled

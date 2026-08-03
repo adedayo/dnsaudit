@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 package main
 
-import "github.com/adedayo/dnsaudit/cmd"
+import "github.com/adedayo/vantage/cmd"
 
 // Build metadata, injected at release time via -ldflags by GoReleaser.
 // See .goreleaser.yml. Plain `go build`/`go install` leaves these empty, in

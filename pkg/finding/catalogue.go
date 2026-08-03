@@ -26,8 +26,8 @@ type Entry struct {
 	Tags        []string
 }
 
-// idPattern constrains catalogue identifiers to DNSA-<CHECK>-<NNN>.
-var idPattern = regexp.MustCompile(`^DNSA-[A-Z0-9]+-[0-9]{3}$`)
+// idPattern constrains catalogue identifiers to SURF-<CHECK>-<NNN>.
+var idPattern = regexp.MustCompile(`^SURF-[A-Z0-9]+-[0-9]{3}$`)
 
 // rfc6376KeyRecord is the DKIM key-record section, cited by every DKIM key
 // finding. Naming it once means a mistyped fragment cannot send a reader to the
@@ -47,16 +47,16 @@ const (
 	TagResilience    = "resilience"
 )
 
-// catalogue holds every finding dnsaudit can raise, keyed by ID.
+// catalogue holds every finding vantage can raise, keyed by ID.
 //
 // Entries are added as the rules that raise them are implemented. Specs 011 to
 // 013 define further rules; those IDs are reserved by the spec but are only
-// added here once the implementing code exists, so that `dnsaudit catalogue`
+// added here once the implementing code exists, so that `vantage catalogue`
 // never advertises a check the tool cannot actually perform.
 var catalogue = index([]Entry{
 	// ---------------------------------------------------------------- SPF ---
 	{
-		ID:         "DNSA-SPF-001",
+		ID:         "SURF-SPF-001",
 		Check:      "spf",
 		Title:      "No SPF record published",
 		Severity:   SeverityHigh,
@@ -71,7 +71,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-002",
+		ID:         "SURF-SPF-002",
 		Check:      "spf",
 		Title:      "Multiple SPF records published",
 		Severity:   SeverityHigh,
@@ -85,7 +85,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-003",
+		ID:         "SURF-SPF-003",
 		Check:      "spf",
 		Title:      "SPF record has a neutral or missing terminal mechanism",
 		Severity:   SeverityMedium,
@@ -99,7 +99,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-004",
+		ID:         "SURF-SPF-004",
 		Check:      "spf",
 		Title:      "SPF record permits all senders (+all)",
 		Severity:   SeverityCritical,
@@ -113,7 +113,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-005",
+		ID:         "SURF-SPF-005",
 		Check:      "spf",
 		Title:      "SPF record uses softfail (~all) rather than fail (-all)",
 		Severity:   SeverityLow,
@@ -127,7 +127,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-008",
+		ID:         "SURF-SPF-008",
 		Check:      "spf",
 		Title:      "SPF record uses the deprecated ptr mechanism",
 		Severity:   SeverityLow,
@@ -140,7 +140,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-SPF-006",
+		ID:         "SURF-SPF-006",
 		Check:      "spf",
 		Title:      "SPF evaluation exceeds the ten-lookup limit",
 		Severity:   SeverityHigh,
@@ -156,7 +156,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-SPF-007",
+		ID:         "SURF-SPF-007",
 		Check:      "spf",
 		Title:      "SPF evaluation exceeds the two void-lookup limit",
 		Severity:   SeverityMedium,
@@ -170,7 +170,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-SPF-009",
+		ID:         "SURF-SPF-009",
 		Check:      "spf",
 		Title:      "SPF include target publishes no usable record",
 		Severity:   SeverityMedium,
@@ -184,7 +184,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-SPF-010",
+		ID:         "SURF-SPF-010",
 		Check:      "spf",
 		Title:      "SPF record exceeds recommended length limits",
 		Severity:   SeverityLow,
@@ -198,7 +198,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-SPF-011",
+		ID:         "SURF-SPF-011",
 		Check:      "spf",
 		Title:      "SPF record authorises an overly broad address range",
 		Severity:   SeverityMedium,
@@ -214,7 +214,7 @@ var catalogue = index([]Entry{
 
 	// -------------------------------------------------------------- DMARC ---
 	{
-		ID:         "DNSA-DMARC-001",
+		ID:         "SURF-DMARC-001",
 		Check:      "dmarc",
 		Title:      "No DMARC record published",
 		Severity:   SeverityHigh,
@@ -228,7 +228,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-002",
+		ID:         "SURF-DMARC-002",
 		Check:      "dmarc",
 		Title:      "DMARC policy is monitoring only (p=none)",
 		Severity:   SeverityMedium,
@@ -241,7 +241,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-003",
+		ID:         "SURF-DMARC-003",
 		Check:      "dmarc",
 		Title:      "DMARC policy is applied to only a subset of mail (pct<100)",
 		Severity:   SeverityLow,
@@ -253,7 +253,7 @@ var catalogue = index([]Entry{
 		Tags:        []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-004",
+		ID:         "SURF-DMARC-004",
 		Check:      "dmarc",
 		Title:      "Subdomain policy is weaker than the domain policy",
 		Severity:   SeverityMedium,
@@ -267,7 +267,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-005",
+		ID:         "SURF-DMARC-005",
 		Check:      "dmarc",
 		Title:      "No DMARC aggregate reporting address (rua)",
 		Severity:   SeverityMedium,
@@ -281,7 +281,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-006",
+		ID:         "SURF-DMARC-006",
 		Check:      "dmarc",
 		Title:      "External reporting destination lacks an authorisation record",
 		Severity:   SeverityHigh,
@@ -297,7 +297,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-007",
+		ID:         "SURF-DMARC-007",
 		Check:      "dmarc",
 		Title:      "Multiple DMARC records published",
 		Severity:   SeverityHigh,
@@ -309,7 +309,7 @@ var catalogue = index([]Entry{
 		Tags:        []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-008",
+		ID:         "SURF-DMARC-008",
 		Check:      "dmarc",
 		Title:      "DMARC record is syntactically invalid",
 		Severity:   SeverityHigh,
@@ -323,7 +323,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DMARC-009",
+		ID:         "SURF-DMARC-009",
 		Check:      "dmarc",
 		Title:      "DMARC policy is inherited from the organisational domain",
 		Severity:   SeverityInfo,
@@ -341,7 +341,7 @@ var catalogue = index([]Entry{
 
 	// --------------------------------------------------------------- DKIM ---
 	{
-		ID:         "DNSA-DKIM-001",
+		ID:         "SURF-DKIM-001",
 		Check:      "dkim",
 		Title:      "No DKIM key found",
 		Severity:   SeverityMedium,
@@ -357,7 +357,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DKIM-002",
+		ID:         "SURF-DKIM-002",
 		Check:      "dkim",
 		Title:      "DKIM RSA key is shorter than 1024 bits",
 		Severity:   SeverityHigh,
@@ -372,7 +372,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagPKI, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-DKIM-003",
+		ID:         "SURF-DKIM-003",
 		Check:      "dkim",
 		Title:      "DKIM RSA key is only 1024 bits",
 		Severity:   SeverityMedium,
@@ -384,7 +384,7 @@ var catalogue = index([]Entry{
 		Tags:        []string{TagEmailAuth, TagPKI},
 	},
 	{
-		ID:         "DNSA-DKIM-004",
+		ID:         "SURF-DKIM-004",
 		Check:      "dkim",
 		Title:      "DKIM key is revoked (empty p=)",
 		Severity:   SeverityMedium,
@@ -397,7 +397,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-DKIM-005",
+		ID:         "SURF-DKIM-005",
 		Check:      "dkim",
 		Title:      "DKIM selector is in test mode (t=y)",
 		Severity:   SeverityLow,
@@ -410,7 +410,7 @@ var catalogue = index([]Entry{
 		Tags:        []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-DKIM-006",
+		ID:         "SURF-DKIM-006",
 		Check:      "dkim",
 		Title:      "DKIM key record is malformed",
 		Severity:   SeverityMedium,
@@ -426,7 +426,7 @@ var catalogue = index([]Entry{
 
 	// -------------------------------------------------------------- TLSRPT ---
 	{
-		ID:         "DNSA-TLSRPT-001",
+		ID:         "SURF-TLSRPT-001",
 		Check:      "tlsrpt",
 		Title:      "No TLS-RPT record published",
 		Severity:   SeverityLow,
@@ -440,7 +440,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-TLSRPT-002",
+		ID:         "SURF-TLSRPT-002",
 		Check:      "tlsrpt",
 		Title:      "TLS-RPT record is malformed or has no reporting destination",
 		Severity:   SeverityLow,
@@ -454,7 +454,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport},
 	},
 	{
-		ID:         "DNSA-MX-001",
+		ID:         "SURF-MX-001",
 		Check:      "mx",
 		Title:      "MX host does not resolve",
 		Severity:   SeverityHigh,
@@ -468,7 +468,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagResilience},
 	},
 	{
-		ID:         "DNSA-MX-002",
+		ID:         "SURF-MX-002",
 		Check:      "mx",
 		Title:      "MX record points at a CNAME",
 		Severity:   SeverityLow,
@@ -482,7 +482,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth, TagResilience},
 	},
 	{
-		ID:         "DNSA-MX-003",
+		ID:         "SURF-MX-003",
 		Check:      "mx",
 		Title:      "Non-mail domain does not publish a null MX",
 		Severity:   SeverityLow,
@@ -497,7 +497,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-MX-004",
+		ID:         "SURF-MX-004",
 		Check:      "mx",
 		Title:      "Only one mail exchanger is published",
 		Severity:   SeverityLow,
@@ -511,7 +511,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-MX-005",
+		ID:         "SURF-MX-005",
 		Check:      "mx",
 		Title:      "All mail exchangers operated by a single provider",
 		Severity:   SeverityLow,
@@ -528,7 +528,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagTransport},
 	},
 	{
-		ID:         "DNSA-CAA-001",
+		ID:         "SURF-CAA-001",
 		Check:      "caa",
 		Title:      "No CAA record at the domain or any ancestor",
 		Severity:   SeverityMedium,
@@ -543,7 +543,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagPKI},
 	},
 	{
-		ID:         "DNSA-CAA-002",
+		ID:         "SURF-CAA-002",
 		Check:      "caa",
 		Title:      "CAA policy restricts issuance but not wildcard issuance",
 		Severity:   SeverityLow,
@@ -557,7 +557,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagPKI},
 	},
 	{
-		ID:         "DNSA-CAA-003",
+		ID:         "SURF-CAA-003",
 		Check:      "caa",
 		Title:      "CAA policy has no iodef reporting address",
 		Severity:   SeverityLow,
@@ -571,7 +571,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagPKI},
 	},
 	{
-		ID:         "DNSA-CAA-004",
+		ID:         "SURF-CAA-004",
 		Check:      "caa",
 		Title:      "CAA record sets the critical flag on an unrecognised tag",
 		Severity:   SeverityMedium,
@@ -585,7 +585,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagPKI},
 	},
 	{
-		ID:         "DNSA-CAA-005",
+		ID:         "SURF-CAA-005",
 		Check:      "caa",
 		Title:      "CAA policy is inherited from an ancestor domain",
 		Severity:   SeverityInfo,
@@ -599,7 +599,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagPKI},
 	},
 	{
-		ID:         "DNSA-MTASTS-001",
+		ID:         "SURF-MTASTS-001",
 		Check:      "mtasts",
 		Title:      "No MTA-STS policy published",
 		Severity:   SeverityLow,
@@ -614,7 +614,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-MTASTS-002",
+		ID:         "SURF-MTASTS-002",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy file is unreachable",
 		Severity:   SeverityHigh,
@@ -629,7 +629,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-MTASTS-003",
+		ID:         "SURF-MTASTS-003",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy is in testing mode",
 		Severity:   SeverityMedium,
@@ -644,7 +644,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-MTASTS-004",
+		ID:         "SURF-MTASTS-004",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy mode is none",
 		Severity:   SeverityMedium,
@@ -658,7 +658,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport},
 	},
 	{
-		ID:         "DNSA-MTASTS-005",
+		ID:         "SURF-MTASTS-005",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy does not cover the published mail exchangers",
 		Severity:   SeverityHigh,
@@ -672,7 +672,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagNCSCMailCheck},
 	},
 	{
-		ID:         "DNSA-MTASTS-006",
+		ID:         "SURF-MTASTS-006",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy id does not match the TXT record",
 		Severity:   SeverityLow,
@@ -686,7 +686,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport},
 	},
 	{
-		ID:         "DNSA-MTASTS-007",
+		ID:         "SURF-MTASTS-007",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy max_age is below the recommended minimum",
 		Severity:   SeverityLow,
@@ -700,7 +700,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport},
 	},
 	{
-		ID:         "DNSA-MTASTS-008",
+		ID:         "SURF-MTASTS-008",
 		Check:      "mtasts",
 		Title:      "MTA-STS policy is served with an invalid certificate",
 		Severity:   SeverityHigh,
@@ -714,7 +714,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagTransport, TagPKI},
 	},
 	{
-		ID:         "DNSA-BIMI-001",
+		ID:         "SURF-BIMI-001",
 		Check:      "bimi",
 		Title:      "BIMI record published without an enforcing DMARC policy",
 		Severity:   SeverityMedium,
@@ -728,7 +728,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-BIMI-002",
+		ID:         "SURF-BIMI-002",
 		Check:      "bimi",
 		Title:      "BIMI logo location is missing or not HTTPS",
 		Severity:   SeverityLow,
@@ -740,7 +740,7 @@ var catalogue = index([]Entry{
 		Tags:        []string{TagEmailAuth},
 	},
 	{
-		ID:         "DNSA-BIMI-003",
+		ID:         "SURF-BIMI-003",
 		Check:      "bimi",
 		Title:      "BIMI record has no Verified Mark Certificate",
 		Severity:   SeverityInfo,
@@ -756,7 +756,7 @@ var catalogue = index([]Entry{
 
 	// ------------------------------------------------------------- DNSSEC ---
 	{
-		ID:         "DNSA-DNSSEC-001",
+		ID:         "SURF-DNSSEC-001",
 		Check:      "dnssec",
 		Title:      "DNSSEC is not enabled",
 		Severity:   SeverityMedium,
@@ -776,7 +776,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagNIST80081, TagResilience},
 	},
 	{
-		ID:         "DNSA-DNSSEC-002",
+		ID:         "SURF-DNSSEC-002",
 		Check:      "dnssec",
 		Title:      "Zone is signed but has no DS record at the parent",
 		Severity:   SeverityHigh,
@@ -793,7 +793,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagNIST80081, TagResilience},
 	},
 	{
-		ID:         "DNSA-DNSSEC-003",
+		ID:         "SURF-DNSSEC-003",
 		Check:      "dnssec",
 		Title:      "DS record does not match any published DNSKEY",
 		Severity:   SeverityCritical,
@@ -810,7 +810,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagNIST80081, TagResilience},
 	},
 	{
-		ID:         "DNSA-DNSSEC-004",
+		ID:         "SURF-DNSSEC-004",
 		Check:      "dnssec",
 		Title:      "Weak DNSSEC signing algorithm or key size",
 		Severity:   SeverityHigh,
@@ -826,7 +826,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagNIST80081, TagPKI},
 	},
 	{
-		ID:         "DNSA-DNSSEC-005",
+		ID:         "SURF-DNSSEC-005",
 		Check:      "dnssec",
 		Title:      "DNSSEC signature expires within seven days",
 		Severity:   SeverityHigh,
@@ -842,7 +842,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-DNSSEC-006",
+		ID:         "SURF-DNSSEC-006",
 		Check:      "dnssec",
 		Title:      "DNSSEC signature has expired",
 		Severity:   SeverityCritical,
@@ -857,7 +857,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-DNSSEC-007",
+		ID:         "SURF-DNSSEC-007",
 		Check:      "dnssec",
 		Title:      "Zone uses NSEC, permitting zone walking",
 		Severity:   SeverityLow,
@@ -876,7 +876,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagNIST80081},
 	},
 	{
-		ID:         "DNSA-DNSSEC-008",
+		ID:         "SURF-DNSSEC-008",
 		Check:      "dnssec",
 		Title:      "NSEC3 iteration count above current guidance",
 		Severity:   SeverityLow,
@@ -893,7 +893,7 @@ var catalogue = index([]Entry{
 
 	// ----------------------------------------------------------- WILDCARD ---
 	{
-		ID:         "DNSA-WILD-001",
+		ID:         "SURF-WILD-001",
 		Check:      "wild",
 		Title:      "Wildcard address record present",
 		Severity:   SeverityInfo,
@@ -908,7 +908,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-WILD-002",
+		ID:         "SURF-WILD-002",
 		Check:      "wild",
 		Title:      "Wildcard MX record present",
 		Severity:   SeverityLow,
@@ -926,7 +926,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagEmailAuth, TagResilience},
 	},
 	{
-		ID:         "DNSA-WILD-003",
+		ID:         "SURF-WILD-003",
 		Check:      "wild",
 		Title:      "Wildcard CNAME to a third-party service",
 		Severity:   SeverityMedium,
@@ -942,7 +942,7 @@ var catalogue = index([]Entry{
 
 	// --------------------------------------------------------- NAMESERVER ---
 	{
-		ID:         "DNSA-NS-001",
+		ID:         "SURF-NS-001",
 		Check:      "ns",
 		Title:      "Single authoritative nameserver",
 		Severity:   SeverityMedium,
@@ -956,7 +956,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagNIST80081},
 	},
 	{
-		ID:         "DNSA-NS-002",
+		ID:         "SURF-NS-002",
 		Check:      "ns",
 		Title:      "All nameservers operated by a single provider",
 		Severity:   SeverityLow,
@@ -979,7 +979,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-NS-003",
+		ID:         "SURF-NS-003",
 		Check:      "ns",
 		Title:      "All nameservers within a single /24",
 		Severity:   SeverityMedium,
@@ -993,7 +993,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagNIST80081},
 	},
 	{
-		ID:         "DNSA-NS-004",
+		ID:         "SURF-NS-004",
 		Check:      "ns",
 		Title:      "Parent and child nameserver sets disagree",
 		Severity:   SeverityMedium,
@@ -1009,7 +1009,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagNIST80081},
 	},
 	{
-		ID:         "DNSA-NS-005",
+		ID:         "SURF-NS-005",
 		Check:      "ns",
 		Title:      "Lame delegation — nameserver does not answer authoritatively",
 		Severity:   SeverityHigh,
@@ -1024,7 +1024,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagNIST80081},
 	},
 	{
-		ID:         "DNSA-NS-006",
+		ID:         "SURF-NS-006",
 		Check:      "ns",
 		Title:      "Missing glue for an in-bailiwick nameserver",
 		Severity:   SeverityMedium,
@@ -1039,7 +1039,7 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience, TagNIST80081},
 	},
 	{
-		ID:         "DNSA-NS-007",
+		ID:         "SURF-NS-007",
 		Check:      "ns",
 		Title:      "Authoritative nameserver is openly recursive",
 		Severity:   SeverityHigh,
@@ -1057,7 +1057,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience, TagNIST80081, TagCISControls},
 	},
 	{
-		ID:         "DNSA-NS-008",
+		ID:         "SURF-NS-008",
 		Check:      "ns",
 		Title:      "SOA serial differs between nameservers",
 		Severity:   SeverityLow,
@@ -1074,7 +1074,7 @@ var catalogue = index([]Entry{
 
 	// ----------------------------------------------------------- TAKEOVER ---
 	{
-		ID:         "DNSA-TKO-001",
+		ID:         "SURF-TKO-001",
 		Check:      "tko",
 		Title:      "Subdomain takeover: alias to an unclaimed name on a known service",
 		Severity:   SeverityCritical,
@@ -1094,7 +1094,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience, TagPKI, TagCISControls},
 	},
 	{
-		ID:         "DNSA-TKO-002",
+		ID:         "SURF-TKO-002",
 		Check:      "tko",
 		Title:      "Alias to a third-party service that reports the name as unclaimed",
 		Severity:   SeverityCritical,
@@ -1115,7 +1115,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience, TagPKI, TagCISControls},
 	},
 	{
-		ID:         "DNSA-TKO-003",
+		ID:         "SURF-TKO-003",
 		Check:      "tko",
 		Title:      "Alias to a third-party service that DNS alone cannot verify",
 		Severity:   SeverityMedium,
@@ -1133,7 +1133,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-TKO-004",
+		ID:         "SURF-TKO-004",
 		Check:      "tko",
 		Title:      "Dangling CNAME to a target that does not exist",
 		Severity:   SeverityHigh,
@@ -1150,7 +1150,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-TKO-005",
+		ID:         "SURF-TKO-005",
 		Check:      "tko",
 		Title:      "Delegation to a nameserver whose name does not exist",
 		Severity:   SeverityHigh,
@@ -1170,7 +1170,7 @@ var catalogue = index([]Entry{
 
 	// ------------------------------------------------------- ZONE TRANSFER ---
 	{
-		ID:         "DNSA-AXFR-001",
+		ID:         "SURF-AXFR-001",
 		Check:      "axfr",
 		Title:      "Zone transfer permitted — the entire zone is disclosed",
 		Severity:   SeverityHigh,
@@ -1191,7 +1191,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagNIST80081, TagCISControls, TagResilience},
 	},
 	{
-		ID:         "DNSA-AXFR-002",
+		ID:         "SURF-AXFR-002",
 		Check:      "axfr",
 		Title:      "Zone transfer partially permitted — zone metadata disclosed",
 		Severity:   SeverityMedium,
@@ -1211,7 +1211,7 @@ var catalogue = index([]Entry{
 
 	// ------------------------------------------------ NETWORK ATTRIBUTION ---
 	{
-		ID:         "DNSA-NET-001",
+		ID:         "SURF-NET-001",
 		Check:      "net",
 		Title:      "Host is served from a provider outside the domain's own estate",
 		Severity:   SeverityInfo,
@@ -1231,7 +1231,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagResilience},
 	},
 	{
-		ID:         "DNSA-NET-002",
+		ID:         "SURF-NET-002",
 		Check:      "net",
 		Title:      "Public name resolves into private or non-routable address space",
 		Severity:   SeverityMedium,
@@ -1252,7 +1252,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagNIST80081, TagCISControls},
 	},
 	{
-		ID:         "DNSA-NET-003",
+		ID:         "SURF-NET-003",
 		Check:      "net",
 		Title:      "Host is served from a jurisdiction outside the declared expectation",
 		Severity:   SeverityInfo,
@@ -1273,7 +1273,7 @@ var catalogue = index([]Entry{
 
 	// ------------------------------------------ CERTIFICATE TRANSPARENCY ---
 	{
-		ID:         "DNSA-CT-001",
+		ID:         "SURF-CT-001",
 		Check:      "ct",
 		Title:      "Certificates issued for hosts that no longer resolve",
 		Severity:   SeverityInfo,
@@ -1295,7 +1295,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagPKI, TagResilience},
 	},
 	{
-		ID:         "DNSA-CT-002",
+		ID:         "SURF-CT-002",
 		Check:      "ct",
 		Title:      "Internal-looking hostnames disclosed in public certificates",
 		Severity:   SeverityMedium,
@@ -1319,7 +1319,7 @@ var catalogue = index([]Entry{
 		Tags: []string{TagPKI, TagCISControls},
 	},
 	{
-		ID:         "DNSA-CT-003",
+		ID:         "SURF-CT-003",
 		Check:      "ct",
 		Title:      "Wildcard certificate covering the apex",
 		Severity:   SeverityInfo,
@@ -1360,7 +1360,7 @@ func Lookup(id string) (Entry, bool) {
 	return e, ok
 }
 
-// Catalogue returns every entry, sorted by ID, for `dnsaudit catalogue` and the
+// Catalogue returns every entry, sorted by ID, for `vantage catalogue` and the
 // agent-facing manifest.
 func Catalogue() []Entry {
 	entries := make([]Entry, 0, len(catalogue))
@@ -1403,7 +1403,7 @@ func ValidateCatalogue() error {
 	for _, e := range Catalogue() {
 		switch {
 		case !idPattern.MatchString(e.ID):
-			return fmt.Errorf("error: malformed catalogue ID %q (want DNSA-<CHECK>-<NNN>)", e.ID)
+			return fmt.Errorf("error: malformed catalogue ID %q (want SURF-<CHECK>-<NNN>)", e.ID)
 		case strings.TrimSpace(e.Check) == "":
 			return fmt.Errorf("error: catalogue entry %s has no check name", e.ID)
 		case strings.TrimSpace(e.Title) == "":

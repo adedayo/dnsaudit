@@ -45,7 +45,7 @@ The CLI prints one record per line.
 
 ## CLI Usage
 ```
-dnsaudit caa example.com
+vantage caa example.com
 ```
 
 ## Testing

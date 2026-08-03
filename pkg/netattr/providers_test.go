@@ -61,7 +61,7 @@ func TestLoadCollectsRangesAndReportsCompleteCoverage(t *testing.T) {
 
 // The dangerous case: one source fails and the rest succeed. Load returns no
 // error, so without Failed the run would continue with a silent coverage hole
-// and DNSA-NET-001 would stop firing for that operator.
+// and SURF-NET-001 would stop firing for that operator.
 func TestLoadReportsPartialFailureWithoutFailingTheRun(t *testing.T) {
 	isolateCache(t)
 

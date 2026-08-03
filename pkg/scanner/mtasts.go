@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	d "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	d "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // maxPolicySize bounds how much of the policy file is read.
@@ -68,7 +68,7 @@ func FetchMTASTSPolicy(ctx context.Context, domain string) analyse.MTASTSPolicy 
 			Reason: "the policy URL could not be constructed",
 		}
 	}
-	req.Header.Set("User-Agent", "dnsaudit")
+	req.Header.Set("User-Agent", "vantage")
 
 	resp, err := client.Do(req)
 	if err != nil {

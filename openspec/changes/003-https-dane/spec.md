@@ -52,9 +52,9 @@ rather than re-encoded.
 
 ## CLI Usage
 ```
-dnsaudit https-dane example.com
-dnsaudit ssh-dane example.com
-dnsaudit smtp-dane example.com
+vantage https-dane example.com
+vantage ssh-dane example.com
+vantage smtp-dane example.com
 ```
 
 ## Testing

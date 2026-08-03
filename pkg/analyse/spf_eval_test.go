@@ -86,7 +86,7 @@ func TestEvaluateSPFAtAndOverTheLimit(t *testing.T) {
 
 		got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 			f, []string{record}, true))
-		assert.NotContains(t, got, "DNSA-SPF-006")
+		assert.NotContains(t, got, "SURF-SPF-006")
 	})
 
 	t.Run("eleven exceeds the limit", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestEvaluateSPFAtAndOverTheLimit(t *testing.T) {
 
 		findings := SPFRecursive(context.Background(), Origin{Target: "example.com"},
 			f, []string{record}, true)
-		assert.Contains(t, ids(findings), "DNSA-SPF-006")
+		assert.Contains(t, ids(findings), "SURF-SPF-006")
 
 		// The computed count must be evidence: an operator has to know how far
 		// over the limit they are to know how much to cut.
@@ -130,7 +130,7 @@ func TestEvaluateSPFIncludeLoopTerminates(t *testing.T) {
 
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "a.example"},
 		f, []string{"v=spf1 include:b.example -all"}, true))
-	assert.Contains(t, got, "DNSA-SPF-009")
+	assert.Contains(t, got, "SURF-SPF-009")
 }
 
 // TestEvaluateSPFSelfInclude covers the direct case of the same defect.
@@ -153,7 +153,7 @@ func TestEvaluateSPFVoidLookups(t *testing.T) {
 
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 		f, []string{record}, true))
-	assert.Contains(t, got, "DNSA-SPF-007")
+	assert.Contains(t, got, "SURF-SPF-007")
 }
 
 func TestEvaluateSPFVoidLimitIsTwo(t *testing.T) {
@@ -162,7 +162,7 @@ func TestEvaluateSPFVoidLimitIsTwo(t *testing.T) {
 
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 		f, []string{record}, true))
-	assert.NotContains(t, got, "DNSA-SPF-007", "two void lookups are permitted")
+	assert.NotContains(t, got, "SURF-SPF-007", "two void lookups are permitted")
 }
 
 func TestEvaluateSPFBrokenIncludes(t *testing.T) {
@@ -181,7 +181,7 @@ func TestEvaluateSPFBrokenIncludes(t *testing.T) {
 
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 		f, []string{record}, true))
-	assert.Contains(t, got, "DNSA-SPF-009")
+	assert.Contains(t, got, "SURF-SPF-009")
 }
 
 // TestEvaluateSPFMacrosAreNotProbed guards against manufacturing a void lookup:
@@ -223,7 +223,7 @@ func TestSPFRecursiveLength(t *testing.T) {
 
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 		f, []string{long}, true))
-	assert.Contains(t, got, "DNSA-SPF-010")
+	assert.Contains(t, got, "SURF-SPF-010")
 }
 
 // TestSPFRecursiveWithoutResolverStillAppliesRecordRules keeps the two entry
@@ -231,7 +231,7 @@ func TestSPFRecursiveLength(t *testing.T) {
 func TestSPFRecursiveWithoutResolverStillAppliesRecordRules(t *testing.T) {
 	got := ids(SPFRecursive(context.Background(), Origin{Target: "example.com"},
 		nil, []string{"v=spf1 +all"}, true))
-	assert.Equal(t, []string{"DNSA-SPF-004"}, got)
+	assert.Equal(t, []string{"SURF-SPF-004"}, got)
 }
 
 func TestSPFRecursiveCleanRecordIsClean(t *testing.T) {

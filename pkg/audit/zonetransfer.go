@@ -7,8 +7,8 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // zoneTransferPort is the port AXFR is attempted on.

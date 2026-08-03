@@ -1,6 +1,6 @@
 //go:build windows
 
-package dnsaudit
+package vantage
 
 import (
 	"net"

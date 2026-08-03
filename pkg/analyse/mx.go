@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // MXHost is a published mail exchanger together with what resolution revealed
@@ -53,7 +53,7 @@ func MX(o Origin, hosts []MXHost, hasAddress bool) []finding.Finding {
 
 	if len(hosts) == 0 {
 		if hasAddress {
-			findings = append(findings, finding.New("DNSA-MX-003", target,
+			findings = append(findings, finding.New("SURF-MX-003", target,
 				o.txtEvidence(target, "no MX records")))
 		}
 		return findings
@@ -64,18 +64,18 @@ func MX(o Origin, hosts []MXHost, hasAddress bool) []finding.Finding {
 			strconv.Itoa(h.Preference)+" "+h.Host)
 
 		if !h.Resolves {
-			findings = append(findings, finding.New("DNSA-MX-001", target, ev))
+			findings = append(findings, finding.New("SURF-MX-001", target, ev))
 			// A host that does not resolve cannot also be diagnosed as a
 			// CNAME; reporting both would be two findings for one defect.
 			continue
 		}
 		if h.IsCNAME {
-			findings = append(findings, finding.New("DNSA-MX-002", target, ev))
+			findings = append(findings, finding.New("SURF-MX-002", target, ev))
 		}
 	}
 
 	if len(hosts) == 1 {
-		findings = append(findings, finding.New("DNSA-MX-004", target,
+		findings = append(findings, finding.New("SURF-MX-004", target,
 			finding.ComputedEvidence("mx.host_count", "1"),
 			finding.ComputedEvidence("mx.host", hosts[0].Host)))
 	}
@@ -99,7 +99,7 @@ func MX(o Origin, hosts []MXHost, hasAddress bool) []finding.Finding {
 // availability requirements justify a second path, not as a defect.
 func mxSingleProvider(o Origin, hosts []MXHost) []finding.Finding {
 	if len(hosts) < 2 {
-		// DNSA-MX-004 already reports the single-exchanger case in full.
+		// SURF-MX-004 already reports the single-exchanger case in full.
 		return nil
 	}
 
@@ -127,7 +127,7 @@ func mxSingleProvider(o Origin, hosts []MXHost) []finding.Finding {
 	}
 	sort.Strings(names)
 
-	f := finding.New("DNSA-MX-005", o.Target,
+	f := finding.New("SURF-MX-005", o.Target,
 		finding.ComputedEvidence("mx.provider", provider),
 		finding.ComputedEvidence("mx.hosts", strings.Join(names, ", ")),
 		finding.ComputedEvidence("mx.provider_basis", "registrable domain of the exchanger names"))

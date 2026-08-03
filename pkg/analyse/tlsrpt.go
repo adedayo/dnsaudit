@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // TLSRPTPolicy holds the parsed tags of a TLS-RPT record (RFC 8460).
@@ -71,7 +71,7 @@ func TLSRPT(o Origin, records []string) []finding.Finding {
 	name := "_smtp._tls." + strings.TrimSuffix(target, ".")
 
 	if len(records) == 0 {
-		return []finding.Finding{finding.New("DNSA-TLSRPT-001", target,
+		return []finding.Finding{finding.New("SURF-TLSRPT-001", target,
 			o.txtEvidence(name, "no v=TLSRPTv1 record"))}
 	}
 
@@ -83,7 +83,7 @@ func TLSRPT(o Origin, records []string) []finding.Finding {
 		return nil
 	}
 	return []finding.Finding{
-		finding.New("DNSA-TLSRPT-002", target,
+		finding.New("SURF-TLSRPT-002", target,
 			o.txtEvidence(name, policy.Raw),
 			finding.ComputedEvidence("tlsrpt.record_count", strconv.Itoa(len(records)))).
 			WithDescription("Specifically, " + policy.Reason + "."),

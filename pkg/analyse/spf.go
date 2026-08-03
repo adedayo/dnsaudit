@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Origin identifies what was assessed and where the data came from.
@@ -51,7 +51,7 @@ func SPF(o Origin, records []string, hasMail bool) []finding.Finding {
 	name := target
 
 	if len(records) == 0 {
-		f := finding.New("DNSA-SPF-001", target,
+		f := finding.New("SURF-SPF-001", target,
 			o.txtEvidence(name, "no v=spf1 record"))
 		if !hasMail {
 			// A domain that does not send mail is a far smaller spoofing prize,
@@ -65,41 +65,41 @@ func SPF(o Origin, records []string, hasMail bool) []finding.Finding {
 	}
 
 	if len(records) > 1 {
-		findings = append(findings, finding.New("DNSA-SPF-002", target,
+		findings = append(findings, finding.New("SURF-SPF-002", target,
 			o.txtEvidence(name, strings.Join(records, " | ")),
 			finding.ComputedEvidence("spf.record_count", strconv.Itoa(len(records)))))
 	}
 
 	// Evaluate the first record. When several exist the domain is already
-	// broken (DNSA-SPF-002); analysing the first still surfaces the content
+	// broken (SURF-SPF-002); analysing the first still surfaces the content
 	// problems the operator will need to fix once they merge them.
 	record := records[0]
 	ev := o.txtEvidence(name, record)
 
 	switch terminal(record) {
 	case "+all", "all":
-		findings = append(findings, finding.New("DNSA-SPF-004", target, ev))
+		findings = append(findings, finding.New("SURF-SPF-004", target, ev))
 	case "?all":
-		findings = append(findings, finding.New("DNSA-SPF-003", target, ev,
+		findings = append(findings, finding.New("SURF-SPF-003", target, ev,
 			finding.ComputedEvidence("spf.terminal", "?all")))
 	case "~all":
-		findings = append(findings, finding.New("DNSA-SPF-005", target, ev))
+		findings = append(findings, finding.New("SURF-SPF-005", target, ev))
 	case "-all":
 		// Correctly configured; no finding.
 	case "":
 		if !hasRedirect(record) {
-			findings = append(findings, finding.New("DNSA-SPF-003", target, ev,
+			findings = append(findings, finding.New("SURF-SPF-003", target, ev,
 				finding.ComputedEvidence("spf.terminal", "none")))
 		}
 	}
 
 	if mechanism, ok := hasPTR(record); ok {
-		findings = append(findings, finding.New("DNSA-SPF-008", target, ev,
+		findings = append(findings, finding.New("SURF-SPF-008", target, ev,
 			finding.ComputedEvidence("spf.mechanism", mechanism)))
 	}
 
 	for _, cidr := range broadRanges(record) {
-		findings = append(findings, finding.New("DNSA-SPF-011", target, ev,
+		findings = append(findings, finding.New("SURF-SPF-011", target, ev,
 			finding.ComputedEvidence("spf.broad_range", cidr)))
 	}
 

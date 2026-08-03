@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // captureRecords runs a record check and returns the records the result
@@ -122,6 +122,6 @@ func TestPolicyLinesOmitsUnfetchedPolicy(t *testing.T) {
 // name" is a conclusion rather than a failure. Misreading it as an error has
 // caused real false negatives in this tool.
 func TestIsNotFoundTreatsSentinelAsAbsence(t *testing.T) {
-	assert.True(t, isNotFound(dnsaudit.ErrNotFound))
+	assert.True(t, isNotFound(vantage.ErrNotFound))
 	assert.False(t, isNotFound(errors.New("server misbehaving")))
 }

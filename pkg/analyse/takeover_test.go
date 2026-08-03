@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/takeover"
+	"github.com/adedayo/vantage/pkg/takeover"
 )
 
 func takeoverIDs(t *testing.T, obs TakeoverObservation) []string {
@@ -42,7 +42,7 @@ func TestTakeoverKnownServiceNXDOMAIN(t *testing.T) {
 			TargetNXDOMAIN: true, Fingerprint: &nxdomainService,
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-TKO-001"}, takeoverIDs(t, obs))
+	assert.Equal(t, []string{"SURF-TKO-001"}, takeoverIDs(t, obs))
 }
 
 func TestTakeoverUnknownServiceNXDOMAIN(t *testing.T) {
@@ -53,7 +53,7 @@ func TestTakeoverUnknownServiceNXDOMAIN(t *testing.T) {
 			Chain: []string{"gone.provider.invalid"}, TargetNXDOMAIN: true,
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-TKO-004"}, takeoverIDs(t, obs))
+	assert.Equal(t, []string{"SURF-TKO-004"}, takeoverIDs(t, obs))
 }
 
 // The single most important negative case: a query that failed is not an
@@ -100,7 +100,7 @@ func TestTakeoverUnverifiableService(t *testing.T) {
 
 	findings := Takeover(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-TKO-003", findings[0].ID)
+	assert.Equal(t, "SURF-TKO-003", findings[0].ID)
 	// The rule states an ambiguity, not a defect, so it must not carry the
 	// confidence of an observation.
 	assert.Equal(t, "low", findings[0].Confidence.String())
@@ -127,7 +127,7 @@ func TestTakeoverCorroborationFailureDoesNotSuppress(t *testing.T) {
 			HTTPFetched: false,
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-TKO-003"}, takeoverIDs(t, obs))
+	assert.Equal(t, []string{"SURF-TKO-003"}, takeoverIDs(t, obs))
 }
 
 // The service's own error page saying the name is unregistered is stronger
@@ -149,7 +149,7 @@ func TestTakeoverHTTPCorroborationConfirms(t *testing.T) {
 
 	findings := Takeover(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-TKO-002", findings[0].ID)
+	assert.Equal(t, "SURF-TKO-002", findings[0].ID)
 	assert.Equal(t, "high", findings[0].Confidence.String())
 
 	// The matched fragment is carried as evidence, so a reader can see what
@@ -213,7 +213,7 @@ func TestTakeoverWildcardReducesConfidence(t *testing.T) {
 
 	findings := Takeover(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-TKO-001", findings[0].ID)
+	assert.Equal(t, "SURF-TKO-001", findings[0].ID)
 	assert.Equal(t, "low", findings[0].Confidence.String())
 }
 
@@ -225,7 +225,7 @@ func TestTakeoverDanglingNameserver(t *testing.T) {
 			{Host: "ns2.gone.invalid", NXDOMAIN: true},
 		},
 	}
-	assert.Equal(t, []string{"DNSA-TKO-005"}, takeoverIDs(t, obs))
+	assert.Equal(t, []string{"SURF-TKO-005"}, takeoverIDs(t, obs))
 }
 
 func TestTakeoverHostWithoutAliasIsSilent(t *testing.T) {

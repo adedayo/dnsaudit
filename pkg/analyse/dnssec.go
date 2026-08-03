@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // RRSIGExpiryWarning is how close to expiry a signature may come before it is
@@ -208,7 +208,7 @@ func DNSSEC(o Origin, z DNSSECZone) []finding.Finding {
 
 	if !z.Signed() {
 		return []finding.Finding{
-			finding.New("DNSA-DNSSEC-001", target, adEvidence,
+			finding.New("SURF-DNSSEC-001", target, adEvidence,
 				finding.DNSEvidence(target, "DNSKEY", "no DNSKEY or DS records", source)),
 		}
 	}
@@ -226,7 +226,7 @@ func chainFindings(target, source string, z DNSSECZone, ad finding.Evidence) []f
 	switch {
 	case len(z.DS) == 0:
 		return []finding.Finding{
-			finding.New("DNSA-DNSSEC-002", target, ad,
+			finding.New("SURF-DNSSEC-002", target, ad,
 				finding.DNSEvidence(target, "DNSKEY", keySummary(z.Keys), source),
 				finding.DNSEvidence(target, "DS", "no DS record at the parent", source)),
 		}
@@ -236,7 +236,7 @@ func chainFindings(target, source string, z DNSSECZone, ad finding.Evidence) []f
 		// validating resolver returns SERVFAIL, so the domain is unreachable
 		// for a large and growing share of the internet.
 		return []finding.Finding{
-			finding.New("DNSA-DNSSEC-003", target, ad,
+			finding.New("SURF-DNSSEC-003", target, ad,
 				finding.DNSEvidence(target, "DS", dsSummary(z.DS), source),
 				finding.DNSEvidence(target, "DNSKEY", "no DNSKEY records published", source)),
 		}
@@ -251,7 +251,7 @@ func chainFindings(target, source string, z DNSSECZone, ad finding.Evidence) []f
 	}
 
 	return []finding.Finding{
-		finding.New("DNSA-DNSSEC-003", target, ad,
+		finding.New("SURF-DNSSEC-003", target, ad,
 			finding.DNSEvidence(target, "DS", dsSummary(z.DS), source),
 			finding.DNSEvidence(target, "DNSKEY", keySummary(z.Keys), source)),
 	}
@@ -290,7 +290,7 @@ func algorithmFindings(target, source string, z DNSSECZone, ad finding.Evidence)
 	}
 	sort.Strings(reasons)
 	return []finding.Finding{
-		finding.New("DNSA-DNSSEC-004", target, ad,
+		finding.New("SURF-DNSSEC-004", target, ad,
 			finding.ComputedEvidence("dnssec.weak_algorithms", strings.Join(reasons, "; ")),
 			finding.DNSEvidence(target, "DNSKEY", keySummary(z.Keys), source)),
 	}
@@ -324,13 +324,13 @@ func signatureFindings(target, source string, z DNSSECZone, ad finding.Evidence)
 
 	var findings []finding.Finding
 	if expired != nil {
-		findings = append(findings, finding.New("DNSA-DNSSEC-006", target, ad,
+		findings = append(findings, finding.New("SURF-DNSSEC-006", target, ad,
 			finding.DNSEvidence(target, "RRSIG", signatureSummary(*expired), source),
 			finding.ComputedEvidence("dnssec.expired_for",
 				now.Sub(expired.Expiration).Round(time.Minute).String())))
 	}
 	if expiring != nil {
-		findings = append(findings, finding.New("DNSA-DNSSEC-005", target, ad,
+		findings = append(findings, finding.New("SURF-DNSSEC-005", target, ad,
 			finding.DNSEvidence(target, "RRSIG", signatureSummary(*expiring), source),
 			finding.ComputedEvidence("dnssec.expires_in",
 				expiring.Expiration.Sub(now).Round(time.Minute).String())))
@@ -343,12 +343,12 @@ func denialFindings(target, source string, z DNSSECZone, ad finding.Evidence) []
 	var findings []finding.Finding
 
 	if z.NSEC && !z.NSEC3 && !z.NSECSynthesised {
-		findings = append(findings, finding.New("DNSA-DNSSEC-007", target, ad,
+		findings = append(findings, finding.New("SURF-DNSSEC-007", target, ad,
 			finding.DNSEvidence(target, "NSEC", "zone uses NSEC for denial of existence", source)))
 	}
 
 	if z.NSEC3 && z.NSEC3Iterations > 0 {
-		findings = append(findings, finding.New("DNSA-DNSSEC-008", target, ad,
+		findings = append(findings, finding.New("SURF-DNSSEC-008", target, ad,
 			finding.DNSEvidence(target, "NSEC3",
 				fmt.Sprintf("%d extra iterations", z.NSEC3Iterations), source)))
 	}

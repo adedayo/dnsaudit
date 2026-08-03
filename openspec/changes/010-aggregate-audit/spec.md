@@ -19,10 +19,10 @@ for.
 
 ## CLI
 ```
-dnsaudit audit example.com
-dnsaudit audit example.com acme.co.uk --format json
-dnsaudit audit --domains-file portfolio.txt --format ndjson --fail-on high
-cat domains.txt | dnsaudit audit --stdin -o ndjson
+vantage audit example.com
+vantage audit example.com acme.co.uk --format json
+vantage audit --domains-file portfolio.txt --format ndjson --fail-on high
+cat domains.txt | vantage audit --stdin -o ndjson
 ```
 
 ### Flags
@@ -76,11 +76,11 @@ editing profile logic.
 ```
 example.com  ── 2 high, 1 medium, 5 info
 
-HIGH    DNSA-SPF-004  SPF record permits all senders (+all)
+HIGH    SURF-SPF-004  SPF record permits all senders (+all)
         Evidence: v=spf1 include:_spf.example.com +all
         Fix: replace +all with -all once senders are enumerated.
 
-HIGH    DNSA-TKO-001  Dangling CNAME to unclaimed S3 bucket
+HIGH    SURF-TKO-001  Dangling CNAME to unclaimed S3 bucket
 ...
 
 Posture: SPF ✓  DKIM ✓  DMARC ⚠ (p=none)  DNSSEC ✗  MTA-STS ✗  CAA ✓

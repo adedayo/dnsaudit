@@ -3,7 +3,7 @@ package analyse
 import (
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // BIMIRecord holds the parsed tags of a BIMI record.
@@ -70,22 +70,22 @@ func BIMI(o Origin, records []string, dmarcEnforcing bool) []finding.Finding {
 		// There is no catalogued malformed-BIMI rule, and inventing a severity
 		// for a cosmetic record would overstate it. The location rule below
 		// carries the operator's actual next step.
-		return append(findings, finding.New("DNSA-BIMI-002", target, ev).
+		return append(findings, finding.New("SURF-BIMI-002", target, ev).
 			WithDescription("Specifically, "+record.Reason+"."))
 	}
 
 	if !dmarcEnforcing {
-		findings = append(findings, finding.New("DNSA-BIMI-001", target, ev,
+		findings = append(findings, finding.New("SURF-BIMI-001", target, ev,
 			finding.ComputedEvidence("bimi.dmarc_enforcing", "false")))
 	}
 
 	if !strings.HasPrefix(strings.ToLower(record.Location), "https://") {
-		findings = append(findings, finding.New("DNSA-BIMI-002", target, ev,
+		findings = append(findings, finding.New("SURF-BIMI-002", target, ev,
 			finding.ComputedEvidence("bimi.l", record.Location)))
 	}
 
 	if record.Authority == "" {
-		findings = append(findings, finding.New("DNSA-BIMI-003", target, ev))
+		findings = append(findings, finding.New("SURF-BIMI-003", target, ev))
 	}
 
 	return findings

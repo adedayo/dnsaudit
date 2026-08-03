@@ -1,6 +1,6 @@
 package audit
 
-import "github.com/adedayo/dnsaudit/pkg/finding"
+import "github.com/adedayo/vantage/pkg/finding"
 
 // GradeVersion identifies the grading algorithm.
 //

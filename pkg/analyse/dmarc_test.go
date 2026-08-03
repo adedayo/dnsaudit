@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 func TestParseDMARC(t *testing.T) {
@@ -55,7 +55,7 @@ func TestParseDMARC(t *testing.T) {
 func TestDMARCMissingRecord(t *testing.T) {
 	got := DMARC(Origin{Target: "example.com"}, nil)
 	require.Len(t, got, 1)
-	assert.Equal(t, "DNSA-DMARC-001", got[0].ID)
+	assert.Equal(t, "SURF-DMARC-001", got[0].ID)
 	assert.Equal(t, finding.SeverityHigh, got[0].Severity)
 }
 
@@ -67,35 +67,35 @@ func TestDMARCPolicies(t *testing.T) {
 	}{
 		"reject with reporting is clean": {
 			record:      "v=DMARC1; p=reject; rua=mailto:a@example.com",
-			unwantedIDs: []string{"DNSA-DMARC-002", "DNSA-DMARC-005"},
+			unwantedIDs: []string{"SURF-DMARC-002", "SURF-DMARC-005"},
 		},
 		"monitoring only": {
 			record:  "v=DMARC1; p=none; rua=mailto:a@example.com",
-			wantIDs: []string{"DNSA-DMARC-002"},
+			wantIDs: []string{"SURF-DMARC-002"},
 		},
 		"no aggregate reporting": {
 			record:  "v=DMARC1; p=reject",
-			wantIDs: []string{"DNSA-DMARC-005"},
+			wantIDs: []string{"SURF-DMARC-005"},
 		},
 		"partial application": {
 			record:  "v=DMARC1; p=reject; pct=20; rua=mailto:a@example.com",
-			wantIDs: []string{"DNSA-DMARC-003"},
+			wantIDs: []string{"SURF-DMARC-003"},
 		},
 		"weaker subdomain policy": {
 			record:  "v=DMARC1; p=reject; sp=none; rua=mailto:a@example.com",
-			wantIDs: []string{"DNSA-DMARC-004"},
+			wantIDs: []string{"SURF-DMARC-004"},
 		},
 		"equal subdomain policy is fine": {
 			record:      "v=DMARC1; p=reject; sp=reject; rua=mailto:a@example.com",
-			unwantedIDs: []string{"DNSA-DMARC-004"},
+			unwantedIDs: []string{"SURF-DMARC-004"},
 		},
 		"stronger subdomain policy is fine": {
 			record:      "v=DMARC1; p=quarantine; sp=reject; rua=mailto:a@example.com",
-			unwantedIDs: []string{"DNSA-DMARC-004"},
+			unwantedIDs: []string{"SURF-DMARC-004"},
 		},
 		"invalid record": {
 			record:  "v=DMARC1; rua=mailto:a@example.com",
-			wantIDs: []string{"DNSA-DMARC-008"},
+			wantIDs: []string{"SURF-DMARC-008"},
 		},
 	}
 
@@ -118,7 +118,7 @@ func TestDMARCPctOnlyMattersWhenEnforcing(t *testing.T) {
 	got := ids(DMARC(Origin{Target: "example.com"}, []string{
 		"v=DMARC1; p=none; pct=20; rua=mailto:a@example.com",
 	}))
-	assert.NotContains(t, got, "DNSA-DMARC-003")
+	assert.NotContains(t, got, "SURF-DMARC-003")
 }
 
 func TestDMARCMultipleRecords(t *testing.T) {
@@ -126,13 +126,13 @@ func TestDMARCMultipleRecords(t *testing.T) {
 		"v=DMARC1; p=reject; rua=mailto:a@example.com",
 		"v=DMARC1; p=none",
 	}))
-	assert.Contains(t, got, "DNSA-DMARC-007")
+	assert.Contains(t, got, "SURF-DMARC-007")
 }
 
 func TestDMARCInvalidRecordExplainsItself(t *testing.T) {
 	got := DMARC(Origin{Target: "example.com"}, []string{"v=DMARC1; p=block"})
 	require.Len(t, got, 1)
-	assert.Equal(t, "DNSA-DMARC-008", got[0].ID)
+	assert.Equal(t, "SURF-DMARC-008", got[0].ID)
 	assert.Contains(t, got[0].Description, "unrecognised value")
 }
 

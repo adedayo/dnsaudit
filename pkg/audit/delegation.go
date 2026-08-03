@@ -6,8 +6,8 @@ import (
 
 	"github.com/miekg/dns"
 
-	d "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	d "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // recursionProbe is the name used to test whether an authoritative server will
@@ -124,7 +124,7 @@ func interrogate(ctx context.Context, c *Cache, domain string, ns *analyse.Names
 	ns.Provider = organisationalDomain(ns.Host)
 	ns.Addresses = resolveHost(ctx, c, ns.Host)
 	if len(ns.Addresses) == 0 {
-		// Unresolvable is left as "did not answer": DNSA-NS-005 reports it at
+		// Unresolvable is left as "did not answer": SURF-NS-005 reports it at
 		// reduced confidence, which is the honest reading of a server we could
 		// not reach rather than one we proved to be lame.
 		return

@@ -6,9 +6,9 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
-	"github.com/adedayo/dnsaudit/pkg/takeover"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/scanner"
+	"github.com/adedayo/vantage/pkg/takeover"
 )
 
 // maxAliasDepth bounds how far an alias chain is followed. RFC 1034 does not

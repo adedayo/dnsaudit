@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // WildcardProbe is the answer a single random label elicited from the zone.
@@ -63,13 +63,13 @@ func Wildcard(o Origin, obs WildcardObservation) []finding.Finding {
 	count := finding.ComputedEvidence("wildcard.probes", strconv.Itoa(len(obs.Probes)))
 
 	if addresses, ok := obs.consistent(func(p WildcardProbe) []string { return p.Addresses }); ok {
-		findings = append(findings, finding.New("DNSA-WILD-001", target,
+		findings = append(findings, finding.New("SURF-WILD-001", target,
 			finding.DNSEvidence(obs.Probes[0].Label, "A/AAAA", strings.Join(addresses, ", "), o.Source),
 			count))
 	}
 
 	if exchangers, ok := obs.consistent(func(p WildcardProbe) []string { return p.MX }); ok {
-		findings = append(findings, finding.New("DNSA-WILD-002", target,
+		findings = append(findings, finding.New("SURF-WILD-002", target,
 			finding.DNSEvidence(obs.Probes[0].Label, "MX", strings.Join(exchangers, ", "), o.Source),
 			count))
 	}
@@ -80,7 +80,7 @@ func Wildcard(o Origin, obs WildcardObservation) []finding.Finding {
 		}
 		return []string{p.CNAME}
 	}); ok && externalTo(obs.Domain, alias[0]) {
-		findings = append(findings, finding.New("DNSA-WILD-003", target,
+		findings = append(findings, finding.New("SURF-WILD-003", target,
 			finding.DNSEvidence(obs.Probes[0].Label, "CNAME", alias[0], o.Source),
 			count))
 	}

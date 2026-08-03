@@ -9,7 +9,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // wildcardProbeCount is how many random labels are queried.

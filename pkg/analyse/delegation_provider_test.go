@@ -23,7 +23,7 @@ func TestSingleProviderReportsOneOperator(t *testing.T) {
 			{Host: "ns2.example-dns.net", Provider: "example-dns.net", Authoritative: true},
 		},
 	}
-	assert.Contains(t, nsIDs(Origin{Target: "example.com"}, d), "DNSA-NS-002")
+	assert.Contains(t, nsIDs(Origin{Target: "example.com"}, d), "SURF-NS-002")
 }
 
 // Two independent operators is the arrangement the rule exists to encourage,
@@ -36,7 +36,7 @@ func TestSingleProviderIsQuietWithTwoOperators(t *testing.T) {
 			{Host: "ns1.other-dns.org", Provider: "other-dns.org", Authoritative: true},
 		},
 	}
-	assert.NotContains(t, nsIDs(Origin{Target: "example.com"}, d), "DNSA-NS-002")
+	assert.NotContains(t, nsIDs(Origin{Target: "example.com"}, d), "SURF-NS-002")
 }
 
 // A nameserver whose provider could not be determined may be the second
@@ -50,10 +50,10 @@ func TestSingleProviderDeclinesOnIncompleteData(t *testing.T) {
 			{Host: "ns2.example-dns.net", Provider: "", Authoritative: true},
 		},
 	}
-	assert.NotContains(t, nsIDs(Origin{Target: "example.com"}, d), "DNSA-NS-002")
+	assert.NotContains(t, nsIDs(Origin{Target: "example.com"}, d), "SURF-NS-002")
 }
 
-// One nameserver is already fully described by DNSA-NS-001; adding a second
+// One nameserver is already fully described by SURF-NS-001; adding a second
 // finding for the same defect is noise.
 func TestSingleProviderDefersToTheSingleNameserverRule(t *testing.T) {
 	d := Delegation{
@@ -61,8 +61,8 @@ func TestSingleProviderDefersToTheSingleNameserverRule(t *testing.T) {
 		Nameservers: []Nameserver{{Host: "ns1.example-dns.net", Provider: "example-dns.net", Authoritative: true}},
 	}
 	ids := nsIDs(Origin{Target: "example.com"}, d)
-	assert.Contains(t, ids, "DNSA-NS-001")
-	assert.NotContains(t, ids, "DNSA-NS-002")
+	assert.Contains(t, ids, "SURF-NS-001")
+	assert.NotContains(t, ids, "SURF-NS-002")
 }
 
 // Vanity nameservers inside the zone say nothing about who operates them, so
@@ -78,7 +78,7 @@ func TestSingleProviderDownConfidencesVanityNameservers(t *testing.T) {
 
 	var confidence string
 	for _, got := range DelegationHygiene(Origin{Target: "example.com"}, d) {
-		if got.ID == "DNSA-NS-002" {
+		if got.ID == "SURF-NS-002" {
 			confidence = got.Confidence.String()
 		}
 	}

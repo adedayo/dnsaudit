@@ -1,6 +1,6 @@
 // zonetransfer.go attempts AXFR against a zone's authoritative nameservers.
 //
-// This is the most intrusive thing dnsaudit does, and it is still only a
+// This is the most intrusive thing vantage does, and it is still only a
 // question: "will you give me the zone?" A server configured correctly says no,
 // which is the answer being tested for. Nothing is written to disk unless the
 // operator asks for it, and the transferred data is discarded once counted.
@@ -16,7 +16,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // maxSampledRecords bounds the evidence retained from a successful transfer.

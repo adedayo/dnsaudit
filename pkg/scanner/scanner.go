@@ -1,10 +1,10 @@
 // Package scanner provides the high-level DNS security auditing API used by the
-// dnsaudit CLI. All functions take a context.Context as their first argument and
+// vantage CLI. All functions take a context.Context as their first argument and
 // return errors prefixed with "error:".
 //
 // Resolver configuration is platform independent: see resolver.go in the
-// dnsaudit package for the discovery order (explicit override, the
-// DNSAUDIT_RESOLVERS environment variable, platform-native configuration, then
+// vantage package for the discovery order (explicit override, the
+// VANTAGE_RESOLVERS environment variable, platform-native configuration, then
 // well-known public resolvers).
 package scanner
 
@@ -17,7 +17,7 @@ import (
 	"github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 
-	d "github.com/adedayo/dnsaudit/pkg"
+	d "github.com/adedayo/vantage/pkg"
 )
 
 // formatTLSA renders TLSA answers as "usage selector matchingType CERTHEX".

@@ -13,7 +13,11 @@ import (
 func TestBannerCarriesPurposeVersionAndAuthor(t *testing.T) {
 	b := banner()
 
-	assert.Contains(t, b, "external attack surface posture")
+	assert.Contains(t, b, "See what an attacker sees")
+	assert.Contains(t, b, "attack surface")
+	// The tool is no longer external-only by definition, so the banner must
+	// not narrow its scope to the external vantage.
+	assert.NotContains(t, b, "external")
 	assert.Contains(t, b, "Version: ")
 	assert.Contains(t, b, "Author: Dr. Adedayo Adetoye (Dayo) <https://github.com/adedayo>")
 }

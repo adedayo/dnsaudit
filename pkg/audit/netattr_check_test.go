@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/audit"
+	"github.com/adedayo/vantage/pkg/audit"
 )
 
 // The most serious rule in this check is decided from the embedded IANA
@@ -47,7 +47,7 @@ func TestNetworkCheckDetectsPrivateAddressLeakage(t *testing.T) {
 	for _, f := range out.Findings {
 		ids = append(ids, f.ID)
 	}
-	assert.Contains(t, ids, "DNSA-NET-002")
+	assert.Contains(t, ids, "SURF-NET-002")
 }
 
 // The converse: a resolver that answers nothing must produce no findings. An

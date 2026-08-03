@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // DMARCPolicy holds the parsed tags of a DMARC record.
@@ -105,12 +105,12 @@ func DMARC(o Origin, records []string) []finding.Finding {
 	name := "_dmarc." + strings.TrimSuffix(target, ".")
 
 	if len(records) == 0 {
-		return append(findings, finding.New("DNSA-DMARC-001", target,
+		return append(findings, finding.New("SURF-DMARC-001", target,
 			o.txtEvidence(name, "no v=DMARC1 record")))
 	}
 
 	if len(records) > 1 {
-		findings = append(findings, finding.New("DNSA-DMARC-007", target,
+		findings = append(findings, finding.New("SURF-DMARC-007", target,
 			o.txtEvidence(name, strings.Join(records, " | ")),
 			finding.ComputedEvidence("dmarc.record_count", strconv.Itoa(len(records)))))
 	}
@@ -119,17 +119,17 @@ func DMARC(o Origin, records []string) []finding.Finding {
 	ev := o.txtEvidence(name, policy.Raw)
 
 	if !policy.Valid {
-		return append(findings, finding.New("DNSA-DMARC-008", target, ev).
+		return append(findings, finding.New("SURF-DMARC-008", target, ev).
 			WithDescription("Specifically, "+policy.Reason+"."))
 	}
 
 	if policy.Policy == "none" {
-		findings = append(findings, finding.New("DNSA-DMARC-002", target, ev,
+		findings = append(findings, finding.New("SURF-DMARC-002", target, ev,
 			finding.ComputedEvidence("dmarc.p", policy.Policy)))
 	}
 
 	if policy.Percent < 100 && policy.Policy != "none" {
-		findings = append(findings, finding.New("DNSA-DMARC-003", target, ev,
+		findings = append(findings, finding.New("SURF-DMARC-003", target, ev,
 			finding.ComputedEvidence("dmarc.pct", strconv.Itoa(policy.Percent))))
 	}
 
@@ -137,7 +137,7 @@ func DMARC(o Origin, records []string) []finding.Finding {
 	if policy.Subdomain != "" {
 		if sub, ok := policyStrength[policy.Subdomain]; ok {
 			if main, ok := policyStrength[policy.Policy]; ok && sub < main {
-				findings = append(findings, finding.New("DNSA-DMARC-004", target, ev,
+				findings = append(findings, finding.New("SURF-DMARC-004", target, ev,
 					finding.ComputedEvidence("dmarc.p", policy.Policy),
 					finding.ComputedEvidence("dmarc.sp", policy.Subdomain)))
 			}
@@ -145,7 +145,7 @@ func DMARC(o Origin, records []string) []finding.Finding {
 	}
 
 	if len(policy.RUA) == 0 {
-		findings = append(findings, finding.New("DNSA-DMARC-005", target, ev))
+		findings = append(findings, finding.New("SURF-DMARC-005", target, ev))
 	}
 
 	return findings

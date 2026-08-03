@@ -1,15 +1,15 @@
 version: 2
 
-project_name: dnsaudit
+project_name: vantage
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: dnsaudit
+  - id: vantage
     main: .
-    binary: dnsaudit
+    binary: vantage
     env:
       - CGO_ENABLED=0
     flags:
@@ -31,7 +31,7 @@ builds:
 archives:
   - id: default
     ids:
-      - dnsaudit
+      - vantage
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     formats:
@@ -72,14 +72,14 @@ sboms:
 # is deliberate, since the latter aborts the whole release when the variable is
 # unset.
 homebrew_casks:
-  - name: dnsaudit
+  - name: vantage
     ids:
       - default
     binaries:
-      - dnsaudit
-    homepage: "https://github.com/adedayo/dnsaudit"
-    description: "Audit security posture by interrogating the DNS."
-    caveats: "To get started, run: dnsaudit --help"
+      - vantage
+    homepage: "https://github.com/adedayo/vantage"
+    description: "See what an attacker sees: audit the attack surface an organisation exposes."
+    caveats: "To get started, run: vantage --help"
     skip_upload: '{{ if index .Env "HOMEBREW_GITHUB_TOKEN" }}false{{ else }}true{{ end }}'
     repository:
       owner: adedayo
@@ -104,7 +104,7 @@ homebrew_casks:
     commit_author:
       name: "Dayo Adetoye"
       email: dayo.dev@gmail.com
-    commit_msg_template: "dnsaudit: update to {{ .Tag }}"
+    commit_msg_template: "vantage: update to {{ .Tag }}"
     # The binaries are not notarised — Apple charges yearly for that — so
     # macOS quarantines them and reports the download as damaged. This is not
     # hypothetical: checkmate-app's cask has no such hook, and its users had
@@ -114,14 +114,14 @@ homebrew_casks:
       post:
         install: |
           if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/dnsaudit"]
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/vantage"]
           end
     # `brew uninstall --zap` should leave nothing behind. The cache holds
     # provider ranges and Certificate Transparency results, not configuration,
     # so removing it costs the user only a re-fetch.
     zap:
       trash:
-        - "~/Library/Caches/dnsaudit"
+        - "~/Library/Caches/vantage"
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
@@ -154,14 +154,14 @@ changelog:
 release:
   github:
     owner: adedayo
-    name: dnsaudit
+    name: vantage
   draft: false
   prerelease: auto
   footer: |
     ## Install
 
     ```sh
-    go install github.com/adedayo/dnsaudit@{{ .Tag }}
+    go install github.com/adedayo/vantage@{{ .Tag }}
     ```
 
     Or download a prebuilt binary for your platform from the assets below.

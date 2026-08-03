@@ -1,4 +1,4 @@
-package dnsaudit
+package vantage
 
 import (
 	"context"
@@ -36,8 +36,8 @@ const DefaultTimeout = DefaultTotalTimeout
 // Environment variables for tuning the timeouts without code or flags. Both
 // accept any Go duration string, e.g. "500ms", "3s", "1m".
 const (
-	QueryTimeoutEnvVar = "DNSAUDIT_QUERY_TIMEOUT"
-	TotalTimeoutEnvVar = "DNSAUDIT_TIMEOUT"
+	QueryTimeoutEnvVar = "VANTAGE_QUERY_TIMEOUT"
+	TotalTimeoutEnvVar = "VANTAGE_TIMEOUT"
 )
 
 var (
@@ -63,7 +63,7 @@ func SetTotalTimeout(d time.Duration) {
 }
 
 // QueryTimeout returns the effective per-resolver attempt timeout: the value set
-// via SetQueryTimeout, else DNSAUDIT_QUERY_TIMEOUT, else DefaultQueryTimeout.
+// via SetQueryTimeout, else VANTAGE_QUERY_TIMEOUT, else DefaultQueryTimeout.
 func QueryTimeout() time.Duration {
 	timeoutMu.RLock()
 	d := queryTimeout
@@ -78,7 +78,7 @@ func QueryTimeout() time.Duration {
 }
 
 // TotalTimeout returns the effective overall lookup timeout: the value set via
-// SetTotalTimeout, else DNSAUDIT_TIMEOUT, else DefaultTotalTimeout.
+// SetTotalTimeout, else VANTAGE_TIMEOUT, else DefaultTotalTimeout.
 func TotalTimeout() time.Duration {
 	timeoutMu.RLock()
 	d := totalTimeout

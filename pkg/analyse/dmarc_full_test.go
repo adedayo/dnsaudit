@@ -64,8 +64,8 @@ func TestDMARCFullInheritsFromOrganisationalDomain(t *testing.T) {
 	got := ids(DMARCFull(context.Background(), Origin{Target: "mail.example.com"},
 		r, nil, "example.com"))
 
-	assert.Contains(t, got, "DNSA-DMARC-009")
-	assert.NotContains(t, got, "DNSA-DMARC-001",
+	assert.Contains(t, got, "SURF-DMARC-009")
+	assert.NotContains(t, got, "SURF-DMARC-001",
 		"an inherited policy means the name is not unprotected")
 }
 
@@ -79,9 +79,9 @@ func TestDMARCFullInheritedWeaknessesStillApply(t *testing.T) {
 	got := ids(DMARCFull(context.Background(), Origin{Target: "mail.example.com"},
 		r, nil, "example.com"))
 
-	assert.Contains(t, got, "DNSA-DMARC-009")
-	assert.Contains(t, got, "DNSA-DMARC-002", "the inherited p=none still applies")
-	assert.Contains(t, got, "DNSA-DMARC-005", "the inherited record still has no rua")
+	assert.Contains(t, got, "SURF-DMARC-009")
+	assert.Contains(t, got, "SURF-DMARC-002", "the inherited p=none still applies")
+	assert.Contains(t, got, "SURF-DMARC-005", "the inherited record still has no rua")
 }
 
 func TestDMARCFullNoRecordAnywhere(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDMARCFullNoRecordAnywhere(t *testing.T) {
 	got := ids(DMARCFull(context.Background(), Origin{Target: "mail.example.com"},
 		r, nil, "example.com"))
 
-	assert.Equal(t, []string{"DNSA-DMARC-001"}, got)
+	assert.Equal(t, []string{"SURF-DMARC-001"}, got)
 }
 
 func TestDMARCFullOrgDomainItselfIsNotProbed(t *testing.T) {
@@ -110,7 +110,7 @@ func TestDMARCFullExternalDestinationUnauthorised(t *testing.T) {
 	findings := DMARCFull(context.Background(), Origin{Target: "example.com"},
 		r, records, "example.com")
 
-	assert.Contains(t, ids(findings), "DNSA-DMARC-006")
+	assert.Contains(t, ids(findings), "SURF-DMARC-006")
 
 	var sawName bool
 	for _, f := range findings {
@@ -133,7 +133,7 @@ func TestDMARCFullExternalDestinationAuthorised(t *testing.T) {
 	got := ids(DMARCFull(context.Background(), Origin{Target: "example.com"},
 		r, records, "example.com"))
 
-	assert.NotContains(t, got, "DNSA-DMARC-006")
+	assert.NotContains(t, got, "SURF-DMARC-006")
 }
 
 // TestDMARCFullInternalDestinationNeedsNoAuthorisation avoids a false positive:
@@ -146,7 +146,7 @@ func TestDMARCFullInternalDestinationNeedsNoAuthorisation(t *testing.T) {
 			records := []string{"v=DMARC1; p=reject; rua=" + uri}
 			got := ids(DMARCFull(context.Background(), Origin{Target: "example.com"},
 				r, records, "example.com"))
-			assert.NotContains(t, got, "DNSA-DMARC-006")
+			assert.NotContains(t, got, "SURF-DMARC-006")
 		})
 	}
 }
@@ -163,7 +163,7 @@ func TestDMARCFullChecksEachDestinationOnce(t *testing.T) {
 
 	var count int
 	for _, f := range findings {
-		if f.ID == "DNSA-DMARC-006" {
+		if f.ID == "SURF-DMARC-006" {
 			count++
 		}
 	}
@@ -194,6 +194,6 @@ func TestDMARCFullWithoutResolverStillAppliesRecordRules(t *testing.T) {
 	got := ids(DMARCFull(context.Background(), Origin{Target: "example.com"},
 		nil, []string{"v=DMARC1; p=none"}, "example.com"))
 
-	assert.Contains(t, got, "DNSA-DMARC-002")
-	assert.NotContains(t, got, "DNSA-DMARC-006", "no resolver means no external verification")
+	assert.Contains(t, got, "SURF-DMARC-002")
+	assert.NotContains(t, got, "SURF-DMARC-006", "no resolver means no external verification")
 }

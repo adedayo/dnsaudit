@@ -22,7 +22,7 @@ and shares a single query layer in `pkg/dns.go`.
    - `scanner.LookupDMARC` extracts the `p=` tag from `_dmarc.<domain>` and
      lower-cases it. Expected values: `reject`, `quarantine`, `none`; unknown
      values are returned verbatim.
-   - `dnsaudit.LookupDMARC` (in `pkg/dmarc.go`) returns the **raw** DMARC record
+   - `vantage.LookupDMARC` (in `pkg/dmarc.go`) returns the **raw** DMARC record
      and is retained for backwards compatibility.
 2. **DMARC Reporting** — see spec `007`.
 3. **MTA-STS Detection**
@@ -56,7 +56,7 @@ and shares a single query layer in `pkg/dns.go`.
     CheckDNSBL(ctx, domain, blocklist string) (bool, error)
     ValidatePublicSuffix(ctx, domain) (bool, error)
     ```
-12. **Shared query layer** (`pkg`, package `dnsaudit`)
+12. **Shared query layer** (`pkg`, package `vantage`)
     ```go
     Resolvers() []string
     SetResolvers(servers ...string)
@@ -89,9 +89,9 @@ and shares a single query layer in `pkg/dns.go`.
       **removed**: a missing or unreadable resolver configuration is no longer
       fatal (see spec `008`).
 14. **Context Propagation**
-    - The lookup budget is the sooner of `dnsaudit.TotalTimeout()` (10 s by
+    - The lookup budget is the sooner of `vantage.TotalTimeout()` (10 s by
       default) and the context deadline; each individual resolver attempt is
-      bounded by `dnsaudit.QueryTimeout()` (2 s by default) so that failover is
+      bounded by `vantage.QueryTimeout()` (2 s by default) so that failover is
       fast. Both are configurable — see spec `008`.
 15. **CLI Commands**
     | Command | Function |
@@ -122,13 +122,13 @@ and shares a single query layer in `pkg/dns.go`.
 16. **Testing**
     - `pkg/scanner/helpers.go` exposes `…WithServer` variants that accept an
       explicit resolver address, so `pkg/scanner` tests can run against a local
-      mock DNS server. They delegate to `dnsaudit.ExchangeWithServer` and share
+      mock DNS server. They delegate to `vantage.ExchangeWithServer` and share
       all parsing/formatting logic with the public API. They are **not** part of
       the stable public API.
     - `CheckDNSBLWithServer` accepts a `net.IP` directly, bypassing address
       resolution.
     - `pkg/scanner/resolver_test.go` additionally exercises the public API by
-      pointing `dnsaudit.SetResolvers` at a mock server.
+      pointing `vantage.SetResolvers` at a mock server.
 
 ## Non-Functional Requirements
 - DNS queries use `github.com/miekg/dns` exclusively; the OS resolver

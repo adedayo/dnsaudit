@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/takeover"
+	"github.com/adedayo/vantage/pkg/takeover"
 )
 
 // The embedded database is the evidence behind Critical findings, so its

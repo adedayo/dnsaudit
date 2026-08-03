@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // stub builds a check that records its invocation and returns a fixed outcome.
@@ -206,7 +206,7 @@ func TestRunnerMergesDeterministically(t *testing.T) {
 	var first []finding.CheckResult
 	for i := 0; i < 5; i++ {
 		r := &Runner{Checks: []Check{check}, Concurrency: 4}
-		res := finding.NewResult("dnsaudit", "test")
+		res := finding.NewResult("vantage", "test")
 		require.NoError(t, r.Run(context.Background(), res, targets...))
 		res.Finalise()
 		if i == 0 {
@@ -228,7 +228,7 @@ func TestRunnerIsolatesCheckFailures(t *testing.T) {
 	bad := stub("bad", NetworkDNS, Outcome{}, errors.New("i/o timeout"))
 
 	r := &Runner{Checks: []Check{good, bad}, CheckConcurrency: 2}
-	res := finding.NewResult("dnsaudit", "test")
+	res := finding.NewResult("vantage", "test")
 	require.NoError(t, r.Run(context.Background(), res, "example.com"))
 	res.Finalise()
 
@@ -248,7 +248,7 @@ func TestRunnerIsolatesCheckFailures(t *testing.T) {
 }
 
 func TestRunnerRejectsEmptyInput(t *testing.T) {
-	res := finding.NewResult("dnsaudit", "test")
+	res := finding.NewResult("vantage", "test")
 	require.Error(t, (&Runner{}).Run(context.Background(), res, "example.com"))
 
 	check := stub("stub", NetworkDNS, Outcome{}, nil)
@@ -272,7 +272,7 @@ func TestRunnerReportsProgress(t *testing.T) {
 			total = t
 		},
 	}
-	res := finding.NewResult("dnsaudit", "test")
+	res := finding.NewResult("vantage", "test")
 	require.NoError(t, r.Run(context.Background(), res, "a.example", "b.example", "c.example"))
 	assert.Equal(t, 3, seen)
 	assert.Equal(t, 3, total)
@@ -379,10 +379,10 @@ func TestGradeIgnoresSuppressedFindings(t *testing.T) {
 // The grade is adjusted by confidence; the reported severities are not. A
 // reader must still see what was actually found.
 func TestGradeDoesNotAlterReportedSeverities(t *testing.T) {
-	f := finding.New("DNSA-CT-002", "example.com")
+	f := finding.New("SURF-CT-002", "example.com")
 	require.Equal(t, "medium", f.Severity.String())
 
-	r := finding.NewResult("dnsaudit", "test")
+	r := finding.NewResult("vantage", "test")
 	r.Add(f, f, f)
 	r.Finalise()
 	r.Summary.Grade = Grade(r.Findings)

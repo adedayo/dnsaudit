@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/netattr"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/netattr"
 )
 
 // NetworkHost is one resolved name and what the address it resolves to could
@@ -43,7 +43,7 @@ type NetworkObservation struct {
 	// This is the check's most dangerous failure mode and the reason the list
 	// is carried rather than a bare flag. Coverage gaps produce false
 	// negatives, not false positives: if the AWS ranges are unavailable, every
-	// AWS address reads as "unattributed", DNSA-NET-001 quietly stops firing,
+	// AWS address reads as "unattributed", SURF-NET-001 quietly stops firing,
 	// and the report is indistinguishable from a domain that genuinely uses no
 	// third-party hosting. Silence would be a claim the data does not support.
 	FailedSources []string
@@ -149,7 +149,7 @@ func assessProvider(
 	var findings []finding.Finding
 
 	if len(obs.Estate) > 0 && !obs.Estate[group.provider] {
-		findings = append(findings, finding.New("DNSA-NET-001", o.Target, evidence...).
+		findings = append(findings, finding.New("SURF-NET-001", o.Target, evidence...).
 			WithConfidence(finding.ConfidenceMedium).
 			WithDescription("This host is served from a provider that hosts none of the "+
 				"domain's own apex or mail infrastructure. That is normal for a deliberate "+
@@ -162,7 +162,7 @@ func assessProvider(
 	// finding drawn from a default assumption about where an organisation
 	// "should" be would be an invention.
 	for _, j := range unexpectedJurisdictions(group.addresses, expected) {
-		findings = append(findings, finding.New("DNSA-NET-003", o.Target,
+		findings = append(findings, finding.New("SURF-NET-003", o.Target,
 			append(evidence,
 				finding.ComputedEvidence("net.jurisdiction", j),
 				finding.ComputedEvidence("net.expected_jurisdictions",
@@ -231,7 +231,7 @@ func specialFindings(
 		finding.ComputedEvidence("net.category", string(sr.Category)))
 
 	if sr.Category.DisclosesInternalAddressing() {
-		return []finding.Finding{finding.New("DNSA-NET-002", o.Target, evidence...)}
+		return []finding.Finding{finding.New("SURF-NET-002", o.Target, evidence...)}
 	}
 
 	switch sr.Category {
@@ -241,7 +241,7 @@ func specialFindings(
 		// It is reported so the reader can confirm it was deliberate, not
 		// asserted as a leak.
 		return []finding.Finding{
-			finding.New("DNSA-NET-002", o.Target, evidence...).
+			finding.New("SURF-NET-002", o.Target, evidence...).
 				WithConfidence(finding.ConfidenceLow).
 				WithDescription("The name resolves to an address that goes nowhere. This is " +
 					"often deliberate — null-routing a name that must exist without pointing " +
@@ -249,7 +249,7 @@ func specialFindings(
 		}
 	case netattr.CategoryDocumentation, netattr.CategoryReserved:
 		return []finding.Finding{
-			finding.New("DNSA-NET-002", o.Target, evidence...).
+			finding.New("SURF-NET-002", o.Target, evidence...).
 				WithConfidence(finding.ConfidenceMedium).
 				WithDescription("The name resolves into address space reserved for " +
 					"documentation or future use, which is never routable. This is almost " +

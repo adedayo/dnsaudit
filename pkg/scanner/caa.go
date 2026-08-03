@@ -8,8 +8,8 @@ import (
 	"github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 
-	d "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	d "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // ClimbCAA performs the RFC 8659 §3 tree-climbing search for a CAA policy,

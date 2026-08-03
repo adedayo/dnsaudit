@@ -8,7 +8,7 @@
 
 ## Summary
 Adds the ability to record a domain's DNS security posture as a signed snapshot
-and to detect changes against it, turning `dnsaudit` from a point-in-time
+and to detect changes against it, turning `vantage` from a point-in-time
 assessment into continuous monitoring.
 
 ## Motivation
@@ -21,11 +21,11 @@ naturally driven by an autonomous agent.
 
 ## CLI
 ```
-dnsaudit baseline create example.com --out baselines/example.com.json
-dnsaudit baseline create --domains-file portfolio.txt --out-dir baselines/
-dnsaudit baseline diff example.com --baseline baselines/example.com.json
-dnsaudit baseline verify baselines/example.com.json
-dnsaudit audit example.com --baseline baselines/example.com.json --fail-on-drift
+vantage baseline create example.com --out baselines/example.com.json
+vantage baseline create --domains-file portfolio.txt --out-dir baselines/
+vantage baseline diff example.com --baseline baselines/example.com.json
+vantage baseline verify baselines/example.com.json
+vantage audit example.com --baseline baselines/example.com.json --fail-on-drift
 ```
 
 ## Snapshot Format
@@ -44,7 +44,7 @@ dnsaudit audit example.com --baseline baselines/example.com.json --fail-on-drift
     "CAA":   [ ... ],
     "DNSKEY":[ ... ]
   },
-  "findings_digest": { "DNSA-DMARC-002": "accepted", "...": "..." },
+  "findings_digest": { "SURF-DMARC-002": "accepted", "...": "..." },
   "digest": "sha256:…"
 }
 ```
@@ -70,15 +70,15 @@ Severity is assigned by record class, because not all drift is equal:
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-DRIFT-001` | Nameserver (NS) set changed | High |
-| `DNSA-DRIFT-002` | MX set changed | High |
-| `DNSA-DRIFT-003` | SPF weakened (terminal moved toward `+all`, or senders added) | High |
-| `DNSA-DRIFT-004` | DMARC policy weakened (`reject`→`quarantine`→`none`) | High |
-| `DNSA-DRIFT-005` | CAA record removed or relaxed | Medium |
-| `DNSA-DRIFT-006` | DNSKEY/DS changed — possible key rollover or compromise | High |
-| `DNSA-DRIFT-007` | New subdomain observed | Info |
-| `DNSA-DRIFT-008` | Posture improved (strengthened policy) | Info |
-| `DNSA-DRIFT-009` | Any other monitored record changed | Low |
+| `SURF-DRIFT-001` | Nameserver (NS) set changed | High |
+| `SURF-DRIFT-002` | MX set changed | High |
+| `SURF-DRIFT-003` | SPF weakened (terminal moved toward `+all`, or senders added) | High |
+| `SURF-DRIFT-004` | DMARC policy weakened (`reject`→`quarantine`→`none`) | High |
+| `SURF-DRIFT-005` | CAA record removed or relaxed | Medium |
+| `SURF-DRIFT-006` | DNSKEY/DS changed — possible key rollover or compromise | High |
+| `SURF-DRIFT-007` | New subdomain observed | Info |
+| `SURF-DRIFT-008` | Posture improved (strengthened policy) | Info |
+| `SURF-DRIFT-009` | Any other monitored record changed | Low |
 
 **Directionality matters**: the differ MUST understand that `p=reject` →
 `p=none` is a weakening while the reverse is an improvement, and grade them
@@ -86,11 +86,11 @@ differently. A naive textual diff would report both identically and train
 operators to ignore the output.
 
 ## Suppression and Accepted Risk
-`.dnsaudit-ignore.yml` in the working directory (or `--ignore-file`):
+`.vantage-ignore.yml` in the working directory (or `--ignore-file`):
 
 ```yaml
 suppress:
-  - id: DNSA-DMARC-002
+  - id: SURF-DMARC-002
     target: legacy.example.com
     reason: "Rollout to p=quarantine scheduled Q4; risk accepted by CISO."
     expires: 2026-12-31
@@ -98,7 +98,7 @@ suppress:
 
 - Suppressions MUST carry a reason; entries without one are rejected.
 - `expires` is mandatory and MUST be in the future; expired suppressions
-  reactivate the finding and raise `DNSA-META-001` (Low) so accepted risk cannot
+  reactivate the finding and raise `SURF-META-001` (Low) so accepted risk cannot
   be quietly permanent.
 - Suppressed findings still appear in structured output with
   `"suppressed": true`, so nothing is hidden from an auditor.

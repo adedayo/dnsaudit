@@ -32,8 +32,8 @@ but reporting parsing fails, the policy is still printed and RUA/RUF show
 
 ## CLI
 ```
-dnsaudit dmarc example.com
-dnsaudit dmarc-report example.com
+vantage dmarc example.com
+vantage dmarc-report example.com
 ```
 Output of `dmarc-report`:
 ```
@@ -43,7 +43,7 @@ RUF    : (none)
 ```
 
 ## Backwards Compatibility
-`dnsaudit.LookupDMARC` in `pkg/dmarc.go` returns the **raw** DMARC record and is
+`vantage.LookupDMARC` in `pkg/dmarc.go` returns the **raw** DMARC record and is
 retained unchanged for existing library consumers.
 
 ## References

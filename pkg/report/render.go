@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // ANSI colour codes, applied only when the caller asks for colour (which the

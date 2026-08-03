@@ -1,4 +1,4 @@
-module github.com/adedayo/dnsaudit
+module github.com/adedayo/vantage
 
 go 1.25.0
 

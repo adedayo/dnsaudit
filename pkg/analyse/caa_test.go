@@ -84,7 +84,7 @@ func TestCAAAncestors(t *testing.T) {
 
 func TestCAANoPolicyAnywhere(t *testing.T) {
 	got := ids(CAA(Origin{Target: "example.com"}, CAAPolicy{}))
-	assert.Equal(t, []string{"DNSA-CAA-001"}, got)
+	assert.Equal(t, []string{"SURF-CAA-001"}, got)
 }
 
 func TestCAAInheritedPolicyIsReported(t *testing.T) {
@@ -98,7 +98,7 @@ func TestCAAInheritedPolicyIsReported(t *testing.T) {
 		Inherited: true,
 	}
 	got := ids(CAA(Origin{Target: "www.example.com"}, policy))
-	assert.Equal(t, []string{"DNSA-CAA-005"}, got)
+	assert.Equal(t, []string{"SURF-CAA-005"}, got)
 }
 
 func TestCAAIssueWithoutIssueWild(t *testing.T) {
@@ -110,7 +110,7 @@ func TestCAAIssueWithoutIssueWild(t *testing.T) {
 		Source: "example.com",
 	}
 	got := ids(CAA(Origin{Target: "example.com"}, policy))
-	assert.Equal(t, []string{"DNSA-CAA-002"}, got)
+	assert.Equal(t, []string{"SURF-CAA-002"}, got)
 }
 
 func TestCAAMissingIodef(t *testing.T) {
@@ -122,7 +122,7 @@ func TestCAAMissingIodef(t *testing.T) {
 		Source: "example.com",
 	}
 	got := ids(CAA(Origin{Target: "example.com"}, policy))
-	assert.Equal(t, []string{"DNSA-CAA-003"}, got)
+	assert.Equal(t, []string{"SURF-CAA-003"}, got)
 }
 
 // TestCAACriticalUnknownTag is the case that breaks issuance entirely: a CA
@@ -138,7 +138,7 @@ func TestCAACriticalUnknownTag(t *testing.T) {
 		Source: "example.com",
 	}
 	got := ids(CAA(Origin{Target: "example.com"}, policy))
-	assert.Equal(t, []string{"DNSA-CAA-004"}, got)
+	assert.Equal(t, []string{"SURF-CAA-004"}, got)
 }
 
 func TestCAACriticalKnownTagIsFine(t *testing.T) {

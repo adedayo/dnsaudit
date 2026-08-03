@@ -9,7 +9,7 @@
 ## Summary
 Removes the previous hard dependency on `/etc/resolv.conf`, which made the tool
 unusable on Windows and fragile in minimal containers. Resolver discovery is now
-layered and platform native, so `dnsaudit` runs unchanged on **Linux, macOS and
+layered and platform native, so `vantage` runs unchanged on **Linux, macOS and
 Windows**.
 
 ## Motivation
@@ -20,15 +20,15 @@ first nameserver was ever used, so a single unreachable resolver failed the whol
 audit.
 
 ## Resolution Order
-`dnsaudit.Resolvers()` returns an ordered list of `host:port` addresses,
+`vantage.Resolvers()` returns an ordered list of `host:port` addresses,
 determined by the first source that yields a usable entry:
 
 | # | Source | Notes |
 |---|---|---|
-| 1 | `dnsaudit.SetResolvers(...)` | Set by the `--resolver` CLI flag or by library callers |
-| 2 | `DNSAUDIT_RESOLVERS` env var | Comma-separated list |
+| 1 | `vantage.SetResolvers(...)` | Set by the `--resolver` CLI flag or by library callers |
+| 2 | `VANTAGE_RESOLVERS` env var | Comma-separated list |
 | 3 | Platform-native configuration | See below |
-| 4 | `dnsaudit.FallbackResolvers` | Cloudflare, Google, Quad9 (incl. IPv6) |
+| 4 | `vantage.FallbackResolvers` | Cloudflare, Google, Quad9 (incl. IPv6) |
 
 ### Platform-native configuration
 | Platform | Mechanism | File |
@@ -60,7 +60,7 @@ Duplicate and unparseable entries are discarded.
   returned.
 - Iteration stops early if the caller's context is cancelled or expires.
 - Truncated UDP responses are automatically retried over TCP.
-- Discovery results are cached; `dnsaudit.ResetResolverCache()` forces a re-read
+- Discovery results are cached; `vantage.ResetResolverCache()` forces a re-read
   for long-running processes whose network configuration changes.
 
 ## Timeouts
@@ -70,8 +70,8 @@ abandoned quickly rather than stalling the whole audit:
 
 | Budget | Scope | Default | Flag | Environment variable | Setter |
 |---|---|---|---|---|---|
-| Query | One attempt against one resolver | `2s` | `--query-timeout` | `DNSAUDIT_QUERY_TIMEOUT` | `SetQueryTimeout` |
-| Total | The entire lookup, across all resolvers | `10s` | `--timeout` | `DNSAUDIT_TIMEOUT` | `SetTotalTimeout` |
+| Query | One attempt against one resolver | `2s` | `--query-timeout` | `VANTAGE_QUERY_TIMEOUT` | `SetQueryTimeout` |
+| Total | The entire lookup, across all resolvers | `10s` | `--timeout` | `VANTAGE_TIMEOUT` | `SetTotalTimeout` |
 
 Precedence for each budget is: setter/flag → environment variable → default. A
 non-positive value passed to a setter restores the default. Environment values
@@ -95,22 +95,22 @@ networks) should raise `--query-timeout`, and `--timeout` alongside it if many
 resolvers are configured.
 
 ## Address Resolution
-`dnsaudit.LookupIP` replaces `net.LookupIP` for the A/AAAA resolution performed
+`vantage.LookupIP` replaces `net.LookupIP` for the A/AAAA resolution performed
 by the PTR and DNSBL checks. This means those checks also honour `--resolver`
 and behave identically across platforms. IP literals are returned unchanged.
 
 ## CLI
 ```
-dnsaudit caa example.com --resolver 1.1.1.1
-dnsaudit ptr example.com --resolver 8.8.8.8 --resolver 9.9.9.9
-DNSAUDIT_RESOLVERS=1.1.1.1,8.8.8.8 dnsaudit spf example.com
+vantage caa example.com --resolver 1.1.1.1
+vantage ptr example.com --resolver 8.8.8.8 --resolver 9.9.9.9
+VANTAGE_RESOLVERS=1.1.1.1,8.8.8.8 vantage spf example.com
 
 # Fail over sooner on a flaky network:
-dnsaudit spf example.com --query-timeout 500ms
+vantage spf example.com --query-timeout 500ms
 
 # Be more patient on a slow link:
-dnsaudit spf example.com --query-timeout 5s --timeout 30s
-DNSAUDIT_QUERY_TIMEOUT=5s DNSAUDIT_TIMEOUT=30s dnsaudit spf example.com
+vantage spf example.com --query-timeout 5s --timeout 30s
+VANTAGE_QUERY_TIMEOUT=5s VANTAGE_TIMEOUT=30s vantage spf example.com
 ```
 
 ## Removed Error Case

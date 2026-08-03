@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // CTHost is one name discovered in a certificate, together with what resolution
@@ -79,7 +79,7 @@ func CertificateTransparency(o Origin, obs CTObservation) []finding.Finding {
 		if strings.TrimPrefix(name, "*.") != obs.Domain {
 			continue
 		}
-		findings = append(findings, finding.New("DNSA-CT-003", o.Target,
+		findings = append(findings, finding.New("SURF-CT-003", o.Target,
 			finding.ComputedEvidence("ct.wildcard", name),
 			finding.ComputedEvidence("ct.source", obs.Source)))
 	}
@@ -107,7 +107,7 @@ func vanishedNameFindings(o Origin, hosts []CTHost) []finding.Finding {
 		finding.ComputedEvidence("ct.host.count", strconv.Itoa(len(vanished))),
 	}, hostEvidence(vanished)...)
 
-	return []finding.Finding{finding.New("DNSA-CT-001", o.Target, evidence...)}
+	return []finding.Finding{finding.New("SURF-CT-001", o.Target, evidence...)}
 }
 
 // internalNameFindings reports internal-looking names, grouped by the keyword
@@ -141,7 +141,7 @@ func internalNameFindings(o Origin, hosts []CTHost) []finding.Finding {
 			finding.ComputedEvidence("ct.host.count", strconv.Itoa(len(matched))),
 		}, hostEvidence(matched)...)
 
-		findings = append(findings, finding.New("DNSA-CT-002", o.Target, evidence...).
+		findings = append(findings, finding.New("SURF-CT-002", o.Target, evidence...).
 			// A keyword heuristic suggests; it does not establish. The spec
 			// requires this rule to be reported at medium confidence, and the
 			// reason is that "test.example.com" may well be a production

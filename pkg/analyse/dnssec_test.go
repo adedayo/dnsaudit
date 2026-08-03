@@ -48,7 +48,7 @@ func TestDNSSECWellConfiguredZoneRaisesNothing(t *testing.T) {
 }
 
 func TestDNSSECNotEnabled(t *testing.T) {
-	assert.Equal(t, []string{"DNSA-DNSSEC-001"},
+	assert.Equal(t, []string{"SURF-DNSSEC-001"},
 		dnssecIDs(DNSSECZone{Now: fixedNow}))
 }
 
@@ -59,7 +59,7 @@ func TestDNSSECIslandOfTrust(t *testing.T) {
 	z := signedZone()
 	z.DS = nil
 
-	assert.Equal(t, []string{"DNSA-DNSSEC-002"}, dnssecIDs(z))
+	assert.Equal(t, []string{"SURF-DNSSEC-002"}, dnssecIDs(z))
 }
 
 func TestDNSSECBrokenChain(t *testing.T) {
@@ -80,7 +80,7 @@ func TestDNSSECBrokenChain(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			z := signedZone()
 			mutate(&z)
-			assert.Contains(t, dnssecIDs(z), "DNSA-DNSSEC-003")
+			assert.Contains(t, dnssecIDs(z), "SURF-DNSSEC-003")
 		})
 	}
 }
@@ -92,7 +92,7 @@ func TestDNSSECDigestMismatchDefaultsToTrusting(t *testing.T) {
 	z := signedZone()
 	z.DS = []DS{{KeyTag: 1234, Algorithm: 13, DigestType: 2}}
 
-	assert.NotContains(t, dnssecIDs(z), "DNSA-DNSSEC-003")
+	assert.NotContains(t, dnssecIDs(z), "SURF-DNSSEC-003")
 }
 
 func TestDNSSECWeakAlgorithms(t *testing.T) {
@@ -116,10 +116,10 @@ func TestDNSSECWeakAlgorithms(t *testing.T) {
 			z.DS = []DS{{KeyTag: 1234, Algorithm: tc.algorithm, DigestType: 2}}
 
 			if tc.want {
-				assert.Contains(t, dnssecIDs(z), "DNSA-DNSSEC-004")
+				assert.Contains(t, dnssecIDs(z), "SURF-DNSSEC-004")
 				return
 			}
-			assert.NotContains(t, dnssecIDs(z), "DNSA-DNSSEC-004")
+			assert.NotContains(t, dnssecIDs(z), "SURF-DNSSEC-004")
 		})
 	}
 }
@@ -136,7 +136,7 @@ func TestDNSSECWeakAlgorithmReportedOnce(t *testing.T) {
 
 	var weak int
 	for _, id := range dnssecIDs(z) {
-		if id == "DNSA-DNSSEC-004" {
+		if id == "SURF-DNSSEC-004" {
 			weak++
 		}
 	}
@@ -151,18 +151,18 @@ func TestDNSSECSignatureExpiry(t *testing.T) {
 		"comfortably valid": {expiration: fixedNow.Add(30 * 24 * time.Hour)},
 		"expiring in six days": {
 			expiration: fixedNow.Add(6 * 24 * time.Hour),
-			want:       []string{"DNSA-DNSSEC-005"},
+			want:       []string{"SURF-DNSSEC-005"},
 		},
 		"exactly on the seven-day boundary": {
 			expiration: fixedNow.Add(7 * 24 * time.Hour),
-			want:       []string{"DNSA-DNSSEC-005"},
+			want:       []string{"SURF-DNSSEC-005"},
 		},
 		"just outside the boundary": {
 			expiration: fixedNow.Add(7*24*time.Hour + time.Minute),
 		},
 		"expired": {
 			expiration: fixedNow.Add(-time.Hour),
-			want:       []string{"DNSA-DNSSEC-006"},
+			want:       []string{"SURF-DNSSEC-006"},
 		},
 	}
 
@@ -186,7 +186,7 @@ func TestDNSSECExpiredAndExpiringReportedSeparately(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t,
-		[]string{"DNSA-DNSSEC-005", "DNSA-DNSSEC-006"}, dnssecIDs(z))
+		[]string{"SURF-DNSSEC-005", "SURF-DNSSEC-006"}, dnssecIDs(z))
 }
 
 // TestDNSSECZeroExpirationIsIgnored guards against inventing a critical outage
@@ -207,13 +207,13 @@ func TestDNSSECDenialOfExistence(t *testing.T) {
 	}{
 		"NSEC3 with zero iterations is correct": {nsec3: true},
 		"NSEC permits zone walking": {
-			nsec: true, want: []string{"DNSA-DNSSEC-007"},
+			nsec: true, want: []string{"SURF-DNSSEC-007"},
 		},
 		"synthesised NSEC cannot be walked": {
 			nsec: true, synthesised: true,
 		},
 		"NSEC3 with extra iterations": {
-			nsec3: true, iterations: 10, want: []string{"DNSA-DNSSEC-008"},
+			nsec3: true, iterations: 10, want: []string{"SURF-DNSSEC-008"},
 		},
 		"a zone serving both is judged on NSEC3": {
 			nsec: true, nsec3: true,
@@ -303,7 +303,7 @@ func TestDNSSECUndersizedRSAKey(t *testing.T) {
 	z.Keys = []DNSKEY{{KeyTag: 1234, Flags: 257, Algorithm: 8, PublicKey: encode(raw)}}
 	z.DS = []DS{{KeyTag: 1234, Algorithm: 8, DigestType: 2}}
 
-	assert.Contains(t, dnssecIDs(z), "DNSA-DNSSEC-004")
+	assert.Contains(t, dnssecIDs(z), "SURF-DNSSEC-004")
 }
 
 func TestDNSKEYFlags(t *testing.T) {

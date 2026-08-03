@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // TestResultExitCode pins down the contract automated consumers depend on.
@@ -15,12 +15,12 @@ import (
 // outage is indistinguishable from a critical security finding.
 func TestResultExitCode(t *testing.T) {
 	withFindings := func(severities ...finding.Severity) *finding.Result {
-		r := finding.NewResult("dnsaudit", "test")
+		r := finding.NewResult("vantage", "test")
 		ids := map[finding.Severity]string{
-			finding.SeverityCritical: "DNSA-SPF-004",
-			finding.SeverityHigh:     "DNSA-DMARC-001",
-			finding.SeverityMedium:   "DNSA-DMARC-005",
-			finding.SeverityLow:      "DNSA-SPF-005",
+			finding.SeverityCritical: "SURF-SPF-004",
+			finding.SeverityHigh:     "SURF-DMARC-001",
+			finding.SeverityMedium:   "SURF-DMARC-005",
+			finding.SeverityLow:      "SURF-SPF-005",
 		}
 		for _, s := range severities {
 			r.Add(finding.New(ids[s], "example.com"))
@@ -72,7 +72,7 @@ func TestResultExitCode(t *testing.T) {
 }
 
 func TestResultExitCodePartial(t *testing.T) {
-	r := finding.NewResult("dnsaudit", "test")
+	r := finding.NewResult("vantage", "test")
 	r.AddError(finding.CheckError{Check: "spf", Code: finding.ErrCodeTimeout, Message: "timed out"})
 	r.Finalise()
 
@@ -83,8 +83,8 @@ func TestResultExitCodePartial(t *testing.T) {
 // severity findings needs to hear about them even when an unrelated check also
 // failed, so the threshold breach must win.
 func TestFindingsOutrankPartialResults(t *testing.T) {
-	r := finding.NewResult("dnsaudit", "test")
-	r.Add(finding.New("DNSA-SPF-004", "example.com"))
+	r := finding.NewResult("vantage", "test")
+	r.Add(finding.New("SURF-SPF-004", "example.com"))
 	r.AddError(finding.CheckError{Check: "dkim", Code: finding.ErrCodeTimeout, Message: "timed out"})
 	r.Finalise()
 
@@ -92,10 +92,10 @@ func TestFindingsOutrankPartialResults(t *testing.T) {
 }
 
 func TestSuppressedFindingsDoNotTriggerFailure(t *testing.T) {
-	suppressed := finding.New("DNSA-SPF-004", "example.com")
+	suppressed := finding.New("SURF-SPF-004", "example.com")
 	suppressed.Suppressed = true
 
-	r := finding.NewResult("dnsaudit", "test")
+	r := finding.NewResult("vantage", "test")
 	r.Add(suppressed)
 	r.Finalise()
 

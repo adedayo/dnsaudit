@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // SPFResolver supplies the lookups that recursive SPF evaluation needs.
@@ -217,7 +217,7 @@ func SPFRecursive(ctx context.Context, o Origin, r SPFResolver, records []string
 	ev := o.txtEvidence(o.Target, record)
 
 	if lengths := lengthProblems(records); len(lengths) > 0 {
-		findings = append(findings, finding.New("DNSA-SPF-010", o.Target, ev,
+		findings = append(findings, finding.New("SURF-SPF-010", o.Target, ev,
 			finding.ComputedEvidence("spf.length", strings.Join(lengths, "; "))))
 	}
 
@@ -229,26 +229,26 @@ func SPFRecursive(ctx context.Context, o Origin, r SPFResolver, records []string
 	}
 
 	if eval.Lookups > spfLookupLimit {
-		findings = append(findings, finding.New("DNSA-SPF-006", o.Target, ev,
+		findings = append(findings, finding.New("SURF-SPF-006", o.Target, ev,
 			finding.ComputedEvidence("spf.lookup_count", count),
 			finding.ComputedEvidence("spf.lookup_limit", strconv.Itoa(spfLookupLimit))))
 	}
 
 	if eval.VoidLookups > spfVoidLimit {
-		findings = append(findings, finding.New("DNSA-SPF-007", o.Target, ev,
+		findings = append(findings, finding.New("SURF-SPF-007", o.Target, ev,
 			finding.ComputedEvidence("spf.void_lookups", strconv.Itoa(eval.VoidLookups)),
 			finding.ComputedEvidence("spf.void_names", strings.Join(eval.VoidNames, ", "))))
 	}
 
 	for _, term := range eval.BrokenTerms {
-		findings = append(findings, finding.New("DNSA-SPF-009", o.Target, ev,
+		findings = append(findings, finding.New("SURF-SPF-009", o.Target, ev,
 			finding.ComputedEvidence("spf.term", term)))
 	}
 
 	if eval.Loop {
 		// A loop is reported as an unusable term rather than a separate rule:
 		// the operator's action is the same, and the evidence names the domain.
-		findings = append(findings, finding.New("DNSA-SPF-009", o.Target, ev,
+		findings = append(findings, finding.New("SURF-SPF-009", o.Target, ev,
 			finding.ComputedEvidence("spf.include_loop", eval.LoopAt)).
 			WithDescription("Specifically, evaluation revisits `"+eval.LoopAt+
 				"`, so the include graph contains a cycle."))

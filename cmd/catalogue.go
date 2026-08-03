@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // catalogueCmd exposes the finding catalogue.
@@ -19,7 +19,7 @@ import (
 // version-controlled source rather than composing advice itself.
 var catalogueCmd = &cobra.Command{
 	Use:   "catalogue",
-	Short: "List every finding dnsaudit can report.",
+	Short: "List every finding vantage can report.",
 	Long: `Print the finding catalogue: every identifier the tool can raise, with its
 default severity, description, remediation guidance and references.
 
@@ -65,7 +65,7 @@ condition matters, how to fix it, and the standard that governs it.`,
 		entry, ok := finding.Lookup(id)
 		if !ok {
 			return withExitCode(ExitUsage, fmt.Errorf(
-				"error: unknown finding %q (list them with 'dnsaudit catalogue')", args[0]))
+				"error: unknown finding %q (list them with 'vantage catalogue')", args[0]))
 		}
 
 		if structuredOutput() {

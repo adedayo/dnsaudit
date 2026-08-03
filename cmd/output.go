@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/report"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/report"
 )
 
 // Output-related global flag values.
@@ -43,7 +43,7 @@ func registerOutputFlags(cmd *cobra.Command) {
 	f.BoolVar(&summaryOnly, "summary", false,
 		"Report counts and check states only, omitting per-finding detail.")
 	f.BoolVar(&noCatalogueText, "no-catalogue-text", false,
-		"Omit description and remediation prose; resolve it later with 'dnsaudit explain <id>'.")
+		"Omit description and remediation prose; resolve it later with 'vantage explain <id>'.")
 	f.BoolVar(&noColour, "no-color", false, "Disable coloured output.")
 	f.BoolVarP(&quiet, "quiet", "q", false, "Suppress explanatory text.")
 }
@@ -142,8 +142,8 @@ func failOn() (finding.Severity, bool, error) {
 // and the resolvers in use, so that output is self-describing and reproducible.
 func newResult() *finding.Result {
 	v, _, _ := buildInfo()
-	result := finding.NewResult("dnsaudit", v)
-	result.Resolvers = dnsaudit.Resolvers()
+	result := finding.NewResult("vantage", v)
+	result.Resolvers = vantage.Resolvers()
 	return result
 }
 

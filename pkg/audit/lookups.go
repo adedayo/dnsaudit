@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // resolveMXHosts fills in the resolution state that MX hygiene rules need.
@@ -43,7 +43,7 @@ func resolveMXHosts(ctx context.Context, c *Cache, hosts []analyse.MXHost) []ana
 		}
 
 		// The registrable domain identifies the operator behind the exchanger,
-		// which is what DNSA-MX-005 rests on. It is derived here rather than in
+		// which is what SURF-MX-005 rests on. It is derived here rather than in
 		// the judgement because it needs the public suffix list: a two-label
 		// approximation would treat two unrelated British organisations, both
 		// under .co.uk, as one provider.

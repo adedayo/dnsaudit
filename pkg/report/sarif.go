@@ -6,12 +6,12 @@ import (
 	"io"
 	"sort"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // SARIF 2.1.0 output, for GitHub code scanning, DefectDojo and similar.
 //
-// Only the subset of the schema dnsaudit can populate honestly is emitted. DNS
+// Only the subset of the schema vantage can populate honestly is emitted. DNS
 // findings have no source file or line, so each result is located by a logical
 // location (the target domain) rather than a fabricated physical one.
 
@@ -87,7 +87,7 @@ type sarifLogicalLocation struct {
 	Kind string `json:"kind"`
 }
 
-// sarifLevel maps dnsaudit severities onto the four SARIF levels. SARIF has no
+// sarifLevel maps vantage severities onto the four SARIF levels. SARIF has no
 // "critical", so critical and high both map to "error"; the original severity
 // is preserved in properties so nothing is lost.
 func sarifLevel(s finding.Severity) string {
@@ -137,7 +137,7 @@ func renderSARIF(w io.Writer, result *finding.Result) error {
 				LogicalLocations: []sarifLogicalLocation{{Name: f.Target, Kind: "resource"}},
 			}},
 			PartialFingerprints: map[string]string{
-				"dnsauditFinding/v1": f.ID + ":" + f.Target,
+				"vantageFinding/v1": f.ID + ":" + f.Target,
 			},
 			Properties: map[string]any{
 				"confidence": f.Confidence.String(),
@@ -165,7 +165,7 @@ func renderSARIF(w io.Writer, result *finding.Result) error {
 			Tool: sarifTool{Driver: sarifDriver{
 				Name:           result.Tool.Name,
 				Version:        result.Tool.Version,
-				InformationURI: "https://github.com/adedayo/dnsaudit",
+				InformationURI: "https://github.com/adedayo/vantage",
 				Rules:          ruleList,
 			}},
 			Results: results,

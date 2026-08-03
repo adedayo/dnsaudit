@@ -13,8 +13,8 @@ import (
 
 	"github.com/miekg/dns"
 
-	d "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	d "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // nxLabel is prefixed to the domain to provoke an authenticated denial of
@@ -24,7 +24,7 @@ import (
 //
 // The label is fixed rather than random so that repeated runs share a resolver
 // cache entry instead of generating fresh negative-cache load on every audit.
-const nxLabel = "_dnsaudit-nonexistent."
+const nxLabel = "_vantage-nonexistent."
 
 // dnssecExchanger performs one DNSSEC-aware query. Parameterising it lets the
 // tests drive the collector against a local mock server.

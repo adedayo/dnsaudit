@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // DMARCResolver supplies the lookups that organisational-domain fallback and
@@ -64,7 +64,7 @@ func DMARCFull(ctx context.Context, o Origin, r DMARCResolver, records []string,
 		if err == nil {
 			if inherited := dmarcRecords(txts); len(inherited) > 0 {
 				findings := []finding.Finding{
-					finding.New("DNSA-DMARC-009", o.Target,
+					finding.New("SURF-DMARC-009", o.Target,
 						o.txtEvidence("_dmarc."+orgDomain, inherited[0]),
 						finding.ComputedEvidence("dmarc.organisational_domain", orgDomain)),
 				}
@@ -103,7 +103,7 @@ func DMARCFull(ctx context.Context, o Origin, r DMARCResolver, records []string,
 		name := target + "._report._dmarc." + dest
 		txts, err := r.TXT(ctx, name)
 		if err != nil || len(dmarcRecords(txts)) == 0 {
-			findings = append(findings, finding.New("DNSA-DMARC-006", o.Target, ev,
+			findings = append(findings, finding.New("SURF-DMARC-006", o.Target, ev,
 				finding.ComputedEvidence("dmarc.report_destination", dest),
 				finding.ComputedEvidence("dmarc.authorisation_record", name)))
 		}

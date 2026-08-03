@@ -47,7 +47,7 @@ func (c certSpotter) Search(ctx context.Context, domain string) ([]Certificate, 
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "dnsaudit")
+	req.Header.Set("User-Agent", "vantage")
 	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: certSpotterTimeout}

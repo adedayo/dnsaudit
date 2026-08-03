@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // ZoneTransferAttempt is the outcome of one AXFR attempt against one server.
@@ -80,9 +80,9 @@ func ZoneTransfer(o Origin, obs ZoneTransferObservation) []finding.Finding {
 				finding.ComputedEvidence("axfr.sample", strings.Join(a.Sample, " | ")))
 		}
 
-		id := "DNSA-AXFR-001"
+		id := "SURF-AXFR-001"
 		if a.RecordCount < partialTransferThreshold {
-			id = "DNSA-AXFR-002"
+			id = "SURF-AXFR-002"
 		}
 		findings = append(findings, finding.New(id, o.Target, evidence...))
 	}

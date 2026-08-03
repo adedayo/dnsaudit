@@ -31,7 +31,7 @@ func TestZoneTransferDisclosure(t *testing.T) {
 
 	findings := ZoneTransfer(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-AXFR-001", findings[0].ID)
+	assert.Equal(t, "SURF-AXFR-001", findings[0].ID)
 }
 
 // One well-configured server does not protect a zone that another will hand
@@ -45,7 +45,7 @@ func TestZoneTransferRefusalDoesNotMaskDisclosure(t *testing.T) {
 			{Nameserver: "ns3.example.com", Answered: true, Transferred: true, RecordCount: 88},
 		},
 	}
-	assert.Equal(t, []string{"DNSA-AXFR-001"}, axfrIDs(t, obs))
+	assert.Equal(t, []string{"SURF-AXFR-001"}, axfrIDs(t, obs))
 }
 
 // Refusal is the control working. Reporting it would invert the check.
@@ -83,7 +83,7 @@ func TestZoneTransferPartialDisclosure(t *testing.T) {
 			RecordCount: 1, Serial: 2026080301, HasSerial: true,
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-AXFR-002"}, axfrIDs(t, obs))
+	assert.Equal(t, []string{"SURF-AXFR-002"}, axfrIDs(t, obs))
 }
 
 // "Every server refused" and "no server could be reached" both yield no

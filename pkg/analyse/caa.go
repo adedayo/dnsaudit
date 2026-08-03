@@ -3,7 +3,7 @@ package analyse
 import (
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // CAARecord is a single parsed CAA property.
@@ -72,7 +72,7 @@ func CAA(o Origin, policy CAAPolicy) []finding.Finding {
 	target := o.Target
 
 	if len(policy.Records) == 0 {
-		return append(findings, finding.New("DNSA-CAA-001", target,
+		return append(findings, finding.New("SURF-CAA-001", target,
 			finding.ComputedEvidence("caa.searched", target)))
 	}
 
@@ -83,7 +83,7 @@ func CAA(o Origin, policy CAAPolicy) []finding.Finding {
 	ev := finding.ComputedEvidence("caa.source", source)
 
 	if policy.Inherited {
-		findings = append(findings, finding.New("DNSA-CAA-005", target, ev))
+		findings = append(findings, finding.New("SURF-CAA-005", target, ev))
 	}
 
 	var hasIssue, hasIssueWild, hasIodef bool
@@ -98,18 +98,18 @@ func CAA(o Origin, policy CAAPolicy) []finding.Finding {
 		}
 
 		if r.Critical() && !knownCAATags[r.Tag] {
-			findings = append(findings, finding.New("DNSA-CAA-004", target, ev,
+			findings = append(findings, finding.New("SURF-CAA-004", target, ev,
 				finding.ComputedEvidence("caa.tag", r.Tag),
 				finding.ComputedEvidence("caa.flags", "critical")))
 		}
 	}
 
 	if hasIssue && !hasIssueWild {
-		findings = append(findings, finding.New("DNSA-CAA-002", target, ev))
+		findings = append(findings, finding.New("SURF-CAA-002", target, ev))
 	}
 
 	if !hasIodef {
-		findings = append(findings, finding.New("DNSA-CAA-003", target, ev))
+		findings = append(findings, finding.New("SURF-CAA-003", target, ev))
 	}
 
 	return findings

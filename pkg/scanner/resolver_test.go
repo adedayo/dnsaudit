@@ -15,18 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // useMockResolver points the global resolver at the given address for the
 // duration of the test.
 func useMockResolver(t *testing.T, addr string) {
 	t.Helper()
-	dnsaudit.SetResolvers(addr)
+	vantage.SetResolvers(addr)
 	t.Cleanup(func() {
-		dnsaudit.SetResolvers()
-		dnsaudit.ResetResolverCache()
+		vantage.SetResolvers()
+		vantage.ResetResolverCache()
 	})
 }
 

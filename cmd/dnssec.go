@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // dnssecCmd assesses a domain's DNSSEC deployment.
@@ -51,7 +51,7 @@ rather than merely reported.`,
 					// absent: a bare "not found" leaves the reader guessing
 					// whether the check failed or the zone is unsigned.
 					return nil, z.Source, fmt.Errorf(
-						"error: DNSSEC is not enabled for %s: %w", target, dnsaudit.ErrNotFound)
+						"error: DNSSEC is not enabled for %s: %w", target, vantage.ErrNotFound)
 				}
 				return analyse.DNSSECRecords(z), z.Source, nil
 			},

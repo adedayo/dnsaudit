@@ -3,8 +3,8 @@ package analyse
 import (
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/takeover"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/takeover"
 )
 
 // TakeoverHost is one assessed name and what resolution revealed about the
@@ -74,7 +74,7 @@ func Takeover(o Origin, obs TakeoverObservation) []finding.Finding {
 		if !ns.NXDOMAIN {
 			continue
 		}
-		findings = append(findings, finding.New("DNSA-TKO-005", o.Target,
+		findings = append(findings, finding.New("SURF-TKO-005", o.Target,
 			finding.ComputedEvidence("takeover.nameserver", ns.Host)))
 	}
 
@@ -110,7 +110,7 @@ func assessHost(o Origin, obs TakeoverObservation, h TakeoverHost) []finding.Fin
 			return nil
 		}
 		return []finding.Finding{
-			withWildcardCaveat(obs, finding.New("DNSA-TKO-004", o.Target, evidence...)),
+			withWildcardCaveat(obs, finding.New("SURF-TKO-004", o.Target, evidence...)),
 		}
 	}
 
@@ -138,13 +138,13 @@ func assessHost(o Origin, obs TakeoverObservation, h TakeoverHost) []finding.Fin
 			finding.ComputedEvidence("takeover.http_url", h.HTTPURL),
 			finding.ComputedEvidence("takeover.http_fingerprint", h.HTTPMatched))
 		return []finding.Finding{
-			withWildcardCaveat(obs, finding.New("DNSA-TKO-002", o.Target, evidence...)),
+			withWildcardCaveat(obs, finding.New("SURF-TKO-002", o.Target, evidence...)),
 		}
 	}
 
 	if h.TargetNXDOMAIN {
 		return []finding.Finding{
-			withWildcardCaveat(obs, finding.New("DNSA-TKO-001", o.Target, evidence...)),
+			withWildcardCaveat(obs, finding.New("SURF-TKO-001", o.Target, evidence...)),
 		}
 	}
 
@@ -174,7 +174,7 @@ func assessHost(o Origin, obs TakeoverObservation, h TakeoverHost) []finding.Fin
 	}
 
 	return []finding.Finding{
-		finding.New("DNSA-TKO-003", o.Target, evidence...).
+		finding.New("SURF-TKO-003", o.Target, evidence...).
 			WithConfidence(finding.ConfidenceLow).
 			WithDescription("The alias target resolves, and this service cannot be " +
 				"distinguished from an abandoned one using DNS alone. No claim is made that " +

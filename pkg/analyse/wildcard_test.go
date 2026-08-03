@@ -26,7 +26,7 @@ func TestWildcardAddressDetected(t *testing.T) {
 	})
 
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-WILD-001", findings[0].ID)
+	assert.Equal(t, "SURF-WILD-001", findings[0].ID)
 	assert.Equal(t, "example.com", findings[0].Target)
 }
 
@@ -77,7 +77,7 @@ func TestWildcardIgnoresAnswerOrder(t *testing.T) {
 	})
 
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-WILD-001", findings[0].ID)
+	assert.Equal(t, "SURF-WILD-001", findings[0].ID)
 }
 
 func TestWildcardMX(t *testing.T) {
@@ -90,7 +90,7 @@ func TestWildcardMX(t *testing.T) {
 	})
 
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-WILD-002", findings[0].ID)
+	assert.Equal(t, "SURF-WILD-002", findings[0].ID)
 }
 
 func TestWildcardCNAME(t *testing.T) {
@@ -104,7 +104,7 @@ func TestWildcardCNAME(t *testing.T) {
 		})
 
 		require.Len(t, findings, 1)
-		assert.Equal(t, "DNSA-WILD-003", findings[0].ID)
+		assert.Equal(t, "SURF-WILD-003", findings[0].ID)
 	})
 
 	// An alias staying inside the domain's own tree hands control to nobody,

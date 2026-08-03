@@ -12,7 +12,7 @@
 `scanner.VerifyNSSEC(ctx, domain) (bool, error)`
 
 ### Behaviour
-Queries `NSEC`, then `NSEC3`, for the domain via `dnsaudit.ExchangeRaw`. Returns
+Queries `NSEC`, then `NSEC3`, for the domain via `vantage.ExchangeRaw`. Returns
 `true` if either query succeeds (RCODE success) with at least one answer record;
 otherwise `(false, nil)`. Transport errors on an individual query are treated as
 "not present" rather than fatal, so the check never fails merely because the
@@ -23,7 +23,7 @@ None: the function reports absence as `(false, nil)`.
 
 ### CLI
 ```
-dnsaudit nssec example.com
+vantage nssec example.com
 ```
 Output:
 ```
@@ -49,7 +49,7 @@ No DNS query is performed; `ctx` is ignored.
 
 ### CLI
 ```
-dnsaudit public-suffix com
+vantage public-suffix com
 ```
 Output:
 ```

@@ -121,13 +121,13 @@ func TestMTASTSCovers(t *testing.T) {
 
 func TestMTASTSNoRecord(t *testing.T) {
 	got := ids(MTASTS(Origin{Target: "example.com"}, nil, MTASTSPolicy{}, nil))
-	assert.Equal(t, []string{"DNSA-MTASTS-001"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-001"}, got)
 }
 
 func TestMTASTSMalformedRecord(t *testing.T) {
 	got := ids(MTASTS(Origin{Target: "example.com"},
 		[]string{"v=STSv2; id=1"}, MTASTSPolicy{}, nil))
-	assert.Equal(t, []string{"DNSA-MTASTS-001"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-001"}, got)
 }
 
 // TestMTASTSWithoutFetchStopsAtDNS is the --no-network contract: the DNS-only
@@ -144,7 +144,7 @@ func TestMTASTSPolicyUnreachable(t *testing.T) {
 	policy := MTASTSPolicy{Fetched: true, CertificateValid: true}
 	got := ids(MTASTS(Origin{Target: "example.com"},
 		[]string{"v=STSv1; id=1"}, policy, nil))
-	assert.Equal(t, []string{"DNSA-MTASTS-002"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-002"}, got)
 }
 
 // TestMTASTSInvalidCertificateIsReportedOverUnreachability keeps the finding
@@ -153,7 +153,7 @@ func TestMTASTSInvalidCertificateIsReportedOverUnreachability(t *testing.T) {
 	policy := MTASTSPolicy{Fetched: true, CertificateValid: false}
 	got := ids(MTASTS(Origin{Target: "example.com"},
 		[]string{"v=STSv1; id=1"}, policy, nil))
-	assert.Equal(t, []string{"DNSA-MTASTS-008"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-008"}, got)
 }
 
 func TestMTASTSModes(t *testing.T) {
@@ -161,8 +161,8 @@ func TestMTASTSModes(t *testing.T) {
 		mode string
 		want string
 	}{
-		"testing": {mode: "testing", want: "DNSA-MTASTS-003"},
-		"none":    {mode: "none", want: "DNSA-MTASTS-004"},
+		"testing": {mode: "testing", want: "SURF-MTASTS-003"},
+		"none":    {mode: "none", want: "SURF-MTASTS-004"},
 	}
 
 	for name, tc := range tests {
@@ -188,7 +188,7 @@ func TestMTASTSUncoveredMX(t *testing.T) {
 	findings := MTASTS(Origin{Target: "example.com"}, []string{"v=STSv1; id=1"}, policy,
 		[]string{"mx1.example.com", "mx2.example.com"})
 
-	assert.Equal(t, []string{"DNSA-MTASTS-005"}, ids(findings))
+	assert.Equal(t, []string{"SURF-MTASTS-005"}, ids(findings))
 
 	var sawHost bool
 	for _, f := range findings {
@@ -228,7 +228,7 @@ func TestMTASTSIDMismatch(t *testing.T) {
 
 	got := ids(MTASTS(Origin{Target: "example.com"},
 		[]string{"v=STSv1; id=20240101T000000Z"}, policy, []string{"mx.example.com"}))
-	assert.Equal(t, []string{"DNSA-MTASTS-006"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-006"}, got)
 }
 
 func TestMTASTSShortMaxAge(t *testing.T) {
@@ -238,7 +238,7 @@ func TestMTASTSShortMaxAge(t *testing.T) {
 
 	got := ids(MTASTS(Origin{Target: "example.com"},
 		[]string{"v=STSv1; id=1"}, policy, []string{"mx.example.com"}))
-	assert.Equal(t, []string{"DNSA-MTASTS-007"}, got)
+	assert.Equal(t, []string{"SURF-MTASTS-007"}, got)
 }
 
 func TestMTASTSHealthyDeploymentIsClean(t *testing.T) {

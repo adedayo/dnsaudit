@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // DKIMKey is a parsed DKIM key record, together with the selector it was found
@@ -131,7 +131,7 @@ func DKIM(o Origin, keys []DKIMKey, probed bool) []finding.Finding {
 	}
 
 	if usable == 0 {
-		f := finding.New("DNSA-DKIM-001", target,
+		f := finding.New("SURF-DKIM-001", target,
 			o.txtEvidence("*._domainkey."+strings.TrimSuffix(target, "."),
 				"no usable DKIM key record found"),
 			finding.ComputedEvidence("dkim.selectors_examined", strconv.Itoa(len(keys))))
@@ -149,25 +149,25 @@ func DKIM(o Origin, keys []DKIMKey, probed bool) []finding.Finding {
 
 		switch {
 		case !k.Valid:
-			findings = append(findings, finding.New("DNSA-DKIM-006", target, ev).
+			findings = append(findings, finding.New("SURF-DKIM-006", target, ev).
 				WithDescription("Specifically, "+k.Reason+"."))
 			continue
 		case k.Revoked:
-			findings = append(findings, finding.New("DNSA-DKIM-004", target, ev))
+			findings = append(findings, finding.New("SURF-DKIM-004", target, ev))
 			continue
 		}
 
 		switch {
 		case k.Bits > 0 && k.Bits < 1024:
-			findings = append(findings, finding.New("DNSA-DKIM-002", target, ev,
+			findings = append(findings, finding.New("SURF-DKIM-002", target, ev,
 				finding.ComputedEvidence("dkim.key_bits", strconv.Itoa(k.Bits))))
 		case k.Bits == 1024:
-			findings = append(findings, finding.New("DNSA-DKIM-003", target, ev,
+			findings = append(findings, finding.New("SURF-DKIM-003", target, ev,
 				finding.ComputedEvidence("dkim.key_bits", "1024")))
 		}
 
 		if k.TestMode {
-			findings = append(findings, finding.New("DNSA-DKIM-005", target, ev,
+			findings = append(findings, finding.New("SURF-DKIM-005", target, ev,
 				finding.ComputedEvidence("dkim.flags", "t=y")))
 		}
 	}

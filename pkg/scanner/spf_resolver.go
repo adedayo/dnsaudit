@@ -7,8 +7,8 @@ import (
 	"github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 
-	d "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/analyse"
+	d "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/analyse"
 )
 
 // DMARCResolver adapts the package's live lookups to the interface the DMARC

@@ -181,7 +181,7 @@ func (db Database) Match(target string) (Fingerprint, bool) {
 	return best, bestFound
 }
 
-// Services returns the service names in the database, for `dnsaudit catalogue`
+// Services returns the service names in the database, for `vantage catalogue`
 // and the forthcoming capability manifest.
 func (db Database) Services() []string {
 	names := make([]string, 0, len(db.Fingerprints))

@@ -86,7 +86,7 @@ if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   fail "Version must be of the form vMAJOR.MINOR.PATCH (got '${VERSION}')."
 fi
 
-printf '%sdnsaudit release%s\n' "$BOLD" "$RESET"
+printf '%svantage release%s\n' "$BOLD" "$RESET"
 printf '    previous: %s\n' "${LATEST_TAG:-<none>}"
 printf '    releasing: %s%s%s\n' "$BOLD" "$VERSION" "$RESET"
 [[ "$DRY_RUN" == "1" ]] && warn "DRY_RUN=1 - no changes will be made"
@@ -174,7 +174,7 @@ info "Publish"
 # the releaser's machine, so the artefacts would differ between maintainers.
 ok "Tag pushed; CI will build and publish the release"
 printf '    workflow: .github/workflows/release.yml\n'
-printf '    progress: https://github.com/adedayo/dnsaudit/actions\n'
-printf '    release:  https://github.com/adedayo/dnsaudit/releases/tag/%s\n' "$VERSION"
+printf '    progress: https://github.com/adedayo/vantage/actions\n'
+printf '    release:  https://github.com/adedayo/vantage/releases/tag/%s\n' "$VERSION"
 
 printf '\n%s%s %s tagged and pushed.%s\n\n' "${GREEN}${BOLD}" "✓" "$VERSION" "$RESET"

@@ -9,11 +9,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/adedayo/dnsaudit/pkg/audit"
+	"github.com/adedayo/vantage/pkg/audit"
 )
 
 var (
 	auditProfile          string
+	auditVantage          string
 	auditChecks           []string
 	auditSkipChecks       []string
 	auditDomainsFile      string
@@ -33,7 +34,7 @@ var (
 
 var auditCmd = &cobra.Command{
 	Use:   "audit [domain...]",
-	Short: "Assess the DNS security posture of one or more domains.",
+	Short: "Assess the attack surface of one or more domains.",
 	Long: `Run every applicable check against one or more domains and report a single
 consolidated result.
 
@@ -44,9 +45,9 @@ between checks, and reports prioritised findings with the evidence behind them.
 Targets may be given as arguments, in a file with --domains-file, or on standard
 input with --stdin.
 
-  dnsaudit audit example.com
-  dnsaudit audit example.com acme.co.uk --profile email
-  dnsaudit audit --domains-file portfolio.txt -o ndjson --fail-on high
+  vantage audit example.com
+  vantage audit example.com acme.co.uk --profile email
+  vantage audit --domains-file portfolio.txt -o ndjson --fail-on high
 
 Only passive DNS queries are made. You are responsible for having authority to
 assess the domains you target.`,
@@ -61,6 +62,10 @@ assess the domains you target.`,
 			return withExitCode(ExitUsage, err)
 		}
 
+		if _, err := audit.ParseVantage(auditVantage); err != nil {
+			return withExitCode(ExitUsage, err)
+		}
+
 		checks, err := audit.Selection{
 			Profile:   profile,
 			Only:      auditChecks,
@@ -72,7 +77,7 @@ assess the domains you target.`,
 		}
 		if len(checks) == 0 {
 			return withExitCode(ExitUsage,
-				fmt.Errorf("error: no checks selected; see 'dnsaudit audit --list-checks'"))
+				fmt.Errorf("error: no checks selected; see 'vantage audit --list-checks'"))
 		}
 
 		targets, err := collectTargets(args)
@@ -233,6 +238,8 @@ func init() {
 	f := auditCmd.Flags()
 	f.StringVar(&auditProfile, "profile", string(audit.ProfileStandard),
 		fmt.Sprintf("Breadth of assessment: %s.", strings.Join(audit.Profiles(), ", ")))
+	f.StringVar(&auditVantage, "from", string(audit.DefaultVantage),
+		fmt.Sprintf("Vantage point to assess from: %s.", strings.Join(audit.Vantages(), ", ")))
 	f.StringSliceVar(&auditChecks, "checks", nil,
 		"Run only these checks, overriding the profile.")
 	f.StringSliceVar(&auditSkipChecks, "skip-checks", nil,

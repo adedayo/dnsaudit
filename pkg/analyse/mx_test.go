@@ -49,7 +49,7 @@ func TestMXNullMXSuppressesHygieneRules(t *testing.T) {
 func TestMXNoRecords(t *testing.T) {
 	t.Run("with an address record the null MX is worth having", func(t *testing.T) {
 		got := ids(MX(Origin{Target: "example.com"}, nil, true))
-		assert.Equal(t, []string{"DNSA-MX-003"}, got)
+		assert.Equal(t, []string{"SURF-MX-003"}, got)
 	})
 
 	t.Run("without one there is nothing to fall back to", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestMXUnresolvableHost(t *testing.T) {
 		{Preference: 20, Host: "typo.example.com", Resolves: false},
 	}
 	got := ids(MX(Origin{Target: "example.com"}, hosts, true))
-	assert.Equal(t, []string{"DNSA-MX-001"}, got)
+	assert.Equal(t, []string{"SURF-MX-001"}, got)
 }
 
 // TestMXUnresolvableCNAMEReportsOneDefect guards against double-reporting: a
@@ -75,7 +75,7 @@ func TestMXUnresolvableCNAMEReportsOneDefect(t *testing.T) {
 		{Preference: 20, Host: "b.example.com", Resolves: false, IsCNAME: true},
 	}
 	got := ids(MX(Origin{Target: "example.com"}, hosts, true))
-	assert.Equal(t, []string{"DNSA-MX-001"}, got)
+	assert.Equal(t, []string{"SURF-MX-001"}, got)
 }
 
 func TestMXCNAMETarget(t *testing.T) {
@@ -84,13 +84,13 @@ func TestMXCNAMETarget(t *testing.T) {
 		{Preference: 20, Host: "b.example.com", Resolves: true},
 	}
 	got := ids(MX(Origin{Target: "example.com"}, hosts, true))
-	assert.Equal(t, []string{"DNSA-MX-002"}, got)
+	assert.Equal(t, []string{"SURF-MX-002"}, got)
 }
 
 func TestMXSingleExchanger(t *testing.T) {
 	hosts := []MXHost{{Preference: 10, Host: "mail.example.com", Resolves: true}}
 	got := ids(MX(Origin{Target: "example.com"}, hosts, true))
-	assert.Equal(t, []string{"DNSA-MX-004"}, got)
+	assert.Equal(t, []string{"SURF-MX-004"}, got)
 }
 
 func TestMXHealthyConfigurationIsClean(t *testing.T) {

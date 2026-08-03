@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
-	"github.com/adedayo/dnsaudit/pkg/report"
+	"github.com/adedayo/vantage/pkg/finding"
+	"github.com/adedayo/vantage/pkg/report"
 )
 
 // resetOutputFlags restores the package-level flag values between tests, since
@@ -145,7 +145,7 @@ func TestJoinOr(t *testing.T) {
 
 func TestNewResultCarriesToolMetadata(t *testing.T) {
 	result := newResult()
-	assert.Equal(t, "dnsaudit", result.Tool.Name)
+	assert.Equal(t, "vantage", result.Tool.Name)
 	assert.Equal(t, finding.SchemaVersion, result.SchemaVersion)
 	assert.NotEmpty(t, result.Resolvers, "output must record which resolvers were used")
 }

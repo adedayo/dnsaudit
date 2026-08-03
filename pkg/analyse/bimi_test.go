@@ -55,7 +55,7 @@ func TestBIMIAbsenceIsNotAFinding(t *testing.T) {
 func TestBIMIWithoutEnforcingDMARC(t *testing.T) {
 	records := []string{"v=BIMI1; l=https://example.com/logo.svg; a=https://example.com/vmc.pem"}
 	got := ids(BIMI(Origin{Target: "example.com"}, records, false))
-	assert.Equal(t, []string{"DNSA-BIMI-001"}, got)
+	assert.Equal(t, []string{"SURF-BIMI-001"}, got)
 }
 
 func TestBIMILogoNotHTTPS(t *testing.T) {
@@ -68,7 +68,7 @@ func TestBIMILogoNotHTTPS(t *testing.T) {
 	for name, record := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := ids(BIMI(Origin{Target: "example.com"}, []string{record}, true))
-			assert.Equal(t, []string{"DNSA-BIMI-002"}, got)
+			assert.Equal(t, []string{"SURF-BIMI-002"}, got)
 		})
 	}
 }
@@ -76,12 +76,12 @@ func TestBIMILogoNotHTTPS(t *testing.T) {
 func TestBIMIMissingVMC(t *testing.T) {
 	records := []string{"v=BIMI1; l=https://example.com/logo.svg"}
 	got := ids(BIMI(Origin{Target: "example.com"}, records, true))
-	assert.Equal(t, []string{"DNSA-BIMI-003"}, got)
+	assert.Equal(t, []string{"SURF-BIMI-003"}, got)
 }
 
 func TestBIMIMalformedRecord(t *testing.T) {
 	got := ids(BIMI(Origin{Target: "example.com"}, []string{"not a bimi record"}, true))
-	assert.Equal(t, []string{"DNSA-BIMI-002"}, got)
+	assert.Equal(t, []string{"SURF-BIMI-002"}, got)
 }
 
 func TestBIMICompleteRecordIsClean(t *testing.T) {

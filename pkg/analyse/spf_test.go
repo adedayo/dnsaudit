@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // ids extracts the finding IDs from a slice, for concise assertions.
@@ -30,23 +30,23 @@ func TestSPFTerminalMechanisms(t *testing.T) {
 		},
 		"soft fail is flagged": {
 			record:  "v=spf1 include:_spf.example.com ~all",
-			wantIDs: []string{"DNSA-SPF-005"},
+			wantIDs: []string{"SURF-SPF-005"},
 		},
 		"neutral is flagged": {
 			record:  "v=spf1 include:_spf.example.com ?all",
-			wantIDs: []string{"DNSA-SPF-003"},
+			wantIDs: []string{"SURF-SPF-003"},
 		},
 		"pass all is critical": {
 			record:  "v=spf1 include:_spf.example.com +all",
-			wantIDs: []string{"DNSA-SPF-004"},
+			wantIDs: []string{"SURF-SPF-004"},
 		},
 		"bare all is pass all": {
 			record:  "v=spf1 include:_spf.example.com all",
-			wantIDs: []string{"DNSA-SPF-004"},
+			wantIDs: []string{"SURF-SPF-004"},
 		},
 		"missing terminal is flagged": {
 			record:  "v=spf1 include:_spf.example.com",
-			wantIDs: []string{"DNSA-SPF-003"},
+			wantIDs: []string{"SURF-SPF-003"},
 		},
 		"redirect excuses a missing terminal": {
 			record:   "v=spf1 redirect=_spf.example.com",
@@ -54,7 +54,7 @@ func TestSPFTerminalMechanisms(t *testing.T) {
 		},
 		"case is ignored": {
 			record:  "v=spf1 INCLUDE:_spf.example.com +ALL",
-			wantIDs: []string{"DNSA-SPF-004"},
+			wantIDs: []string{"SURF-SPF-004"},
 		},
 	}
 
@@ -74,7 +74,7 @@ func TestSPFMissingRecord(t *testing.T) {
 	t.Run("mail sending domain", func(t *testing.T) {
 		got := SPF(Origin{Target: "example.com"}, nil, true)
 		require.Len(t, got, 1)
-		assert.Equal(t, "DNSA-SPF-001", got[0].ID)
+		assert.Equal(t, "SURF-SPF-001", got[0].ID)
 		assert.Equal(t, finding.SeverityHigh, got[0].Severity)
 	})
 
@@ -95,15 +95,15 @@ func TestSPFMultipleRecords(t *testing.T) {
 		"v=spf1 include:two.example -all",
 	}, true)
 
-	assert.Contains(t, ids(got), "DNSA-SPF-002")
+	assert.Contains(t, ids(got), "SURF-SPF-002")
 }
 
 func TestSPFDeprecatedPTR(t *testing.T) {
 	got := SPF(Origin{Target: "example.com"}, []string{"v=spf1 ptr:example.com -all"}, true)
-	assert.Contains(t, ids(got), "DNSA-SPF-008")
+	assert.Contains(t, ids(got), "SURF-SPF-008")
 
 	got = SPF(Origin{Target: "example.com"}, []string{"v=spf1 ptr -all"}, true)
-	assert.Contains(t, ids(got), "DNSA-SPF-008")
+	assert.Contains(t, ids(got), "SURF-SPF-008")
 }
 
 func TestSPFBroadRanges(t *testing.T) {
@@ -124,10 +124,10 @@ func TestSPFBroadRanges(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := ids(SPF(Origin{Target: "example.com"}, []string{tc.record}, true))
 			if tc.want {
-				assert.Contains(t, got, "DNSA-SPF-011")
+				assert.Contains(t, got, "SURF-SPF-011")
 				return
 			}
-			assert.NotContains(t, got, "DNSA-SPF-011")
+			assert.NotContains(t, got, "SURF-SPF-011")
 		})
 	}
 }

@@ -43,7 +43,7 @@ ok()    { printf '%s    ✓ %s%s\n' "$GREEN" "$1" "$RESET"; }
 warn()  { printf '%s    ! %s%s\n' "$YELLOW" "$1" "$RESET"; }
 fail()  { printf '\n%s    ✗ %s%s\n' "${RED}${BOLD}" "$1" "$RESET" >&2; exit 1; }
 
-printf '%s%s\n' "${BOLD}" "dnsaudit pre-release verification${RESET}"
+printf '%s%s\n' "${BOLD}" "vantage pre-release verification${RESET}"
 printf '    repo: %s\n' "$REPO_ROOT"
 
 # ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ fi
 # ---------------------------------------------------------------------------
 step "Cross-platform builds"
 # ---------------------------------------------------------------------------
-# dnsaudit supports Linux, macOS and Windows; resolver discovery is
+# vantage supports Linux, macOS and Windows; resolver discovery is
 # build-tagged per platform, so every target must be compiled.
 PLATFORMS=(
   "linux/amd64"
@@ -161,7 +161,7 @@ trap 'rm -rf "$BUILD_TMP"' EXIT
 for platform in "${PLATFORMS[@]}"; do
   GOOS="${platform%%/*}"
   GOARCH="${platform##*/}"
-  output="$BUILD_TMP/dnsaudit-${GOOS}-${GOARCH}"
+  output="$BUILD_TMP/vantage-${GOOS}-${GOARCH}"
   [[ "$GOOS" == "windows" ]] && output+=".exe"
 
   # Compile every package (catches build-tagged code that the binary alone may
@@ -180,10 +180,10 @@ step "Smoke test"
 # ---------------------------------------------------------------------------
 # Confirm the binary actually starts and the command surface is intact. This
 # performs no network I/O.
-SMOKE_BIN="$BUILD_TMP/dnsaudit-smoke"
+SMOKE_BIN="$BUILD_TMP/vantage-smoke"
 go build -o "$SMOKE_BIN" . || fail "Failed to build the host binary."
 
-HELP_OUTPUT="$("$SMOKE_BIN" --help 2>&1)" || fail "'dnsaudit --help' exited non-zero."
+HELP_OUTPUT="$("$SMOKE_BIN" --help 2>&1)" || fail "'vantage --help' exited non-zero."
 for cmd in audit spf dkim dmarc dmarc-report mtasts dnssec nssec \
            smtp-dane https-dane ssh-dane caa ptr dnsbl public-suffix \
            catalogue explain version; do
@@ -199,8 +199,8 @@ done
 ok "Global flags are present"
 
 # Version metadata must resolve even without release-time ldflags.
-"$SMOKE_BIN" version >/dev/null || fail "'dnsaudit version' failed."
-"$SMOKE_BIN" --version >/dev/null || fail "'dnsaudit --version' failed."
+"$SMOKE_BIN" version >/dev/null || fail "'vantage version' failed."
+"$SMOKE_BIN" --version >/dev/null || fail "'vantage --version' failed."
 ok "Version information is available"
 
 # Public Suffix validation needs no network, so it is a safe end-to-end check.
@@ -209,16 +209,16 @@ ok "Version information is available"
 # The finding catalogue is offline data, so it is fully checkable here. These
 # assertions guard the contract that findings are self-describing: an ID that
 # resolves to no guidance is worse than useless to whoever has to act on it.
-"$SMOKE_BIN" catalogue >/dev/null || fail "'dnsaudit catalogue' failed."
-"$SMOKE_BIN" explain DNSA-SPF-004 >/dev/null || fail "'dnsaudit explain' failed."
+"$SMOKE_BIN" catalogue >/dev/null || fail "'vantage catalogue' failed."
+"$SMOKE_BIN" explain SURF-SPF-004 >/dev/null || fail "'vantage explain' failed."
 # Captured rather than piped into grep -q. Under `set -o pipefail`, grep -q
 # exits at the first match and the still-writing producer takes SIGPIPE, so the
 # pipeline reports 141 and the check fails despite having found what it wanted.
 CATALOGUE_JSON="$("$SMOKE_BIN" catalogue -o json)" ||
-  fail "'dnsaudit catalogue -o json' failed."
+  fail "'vantage catalogue -o json' failed."
 grep -q '"remediation"' <<<"$CATALOGUE_JSON" ||
   fail "Catalogue JSON is missing remediation guidance."
-if "$SMOKE_BIN" explain DNSA-NOPE-001 >/dev/null 2>&1; then
+if "$SMOKE_BIN" explain SURF-NOPE-001 >/dev/null 2>&1; then
   fail "'explain' accepted an unknown finding ID."
 fi
 

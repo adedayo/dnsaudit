@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 func ctIDs(obs CTObservation) []string {
@@ -26,7 +26,7 @@ func TestCTReportsCertificateForAVanishedHost(t *testing.T) {
 			Issuer: "CN=Test CA", Expiry: "2026-12-01",
 		}},
 	}
-	assert.Equal(t, []string{"DNSA-CT-001"}, ctIDs(obs))
+	assert.Equal(t, []string{"SURF-CT-001"}, ctIDs(obs))
 }
 
 // A name that still resolves is simply in service.
@@ -58,7 +58,7 @@ func TestCTReportsInternalLookingNames(t *testing.T) {
 			Domain: "example.com",
 			Hosts:  []CTHost{{Host: host, Resolves: true}},
 		}
-		assert.Contains(t, ctIDs(obs), "DNSA-CT-002", host)
+		assert.Contains(t, ctIDs(obs), "SURF-CT-002", host)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestCTInternalKeywordsMatchWholeLabelsOnly(t *testing.T) {
 			Domain: "example.com",
 			Hosts:  []CTHost{{Host: host, Resolves: true}},
 		}
-		assert.NotContains(t, ctIDs(obs), "DNSA-CT-002", host)
+		assert.NotContains(t, ctIDs(obs), "SURF-CT-002", host)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestCTIgnoresKeywordsInTheRegistrableDomain(t *testing.T) {
 		Domain: "test.com",
 		Hosts:  []CTHost{{Host: "test.com", Resolves: true}},
 	}
-	assert.NotContains(t, ctIDs(obs), "DNSA-CT-002")
+	assert.NotContains(t, ctIDs(obs), "SURF-CT-002")
 }
 
 func TestCTReportsWildcardCoveringTheApex(t *testing.T) {
@@ -107,7 +107,7 @@ func TestCTReportsWildcardCoveringTheApex(t *testing.T) {
 		Domain:        "example.com",
 		WildcardNames: []string{"*.example.com"},
 	}
-	assert.Equal(t, []string{"DNSA-CT-003"}, ctIDs(obs))
+	assert.Equal(t, []string{"SURF-CT-003"}, ctIDs(obs))
 }
 
 // A wildcard deeper in the tree covers a subtree, not the apex, and the rule
@@ -194,7 +194,7 @@ func TestCTGroupsVanishedNames(t *testing.T) {
 
 	findings := CertificateTransparency(Origin{Target: "example.com"}, obs)
 	require.Len(t, findings, 1)
-	assert.Equal(t, "DNSA-CT-001", findings[0].ID)
+	assert.Equal(t, "SURF-CT-001", findings[0].ID)
 	assert.Equal(t, "2", evidenceValue(t, findings[0], "ct.host.count"))
 	// The issuer and expiry travel with the name they belong to.
 	assert.Equal(t, "old.example.com (CN=Test CA, expires 2026-12-01)",

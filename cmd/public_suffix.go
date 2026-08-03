@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // publicSuffixCmd validates whether a domain label is a public suffix.

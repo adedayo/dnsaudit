@@ -3,8 +3,8 @@ package audit
 import (
 	"context"
 
-	"github.com/adedayo/dnsaudit/pkg/ct"
-	"github.com/adedayo/dnsaudit/pkg/scanner"
+	"github.com/adedayo/vantage/pkg/ct"
+	"github.com/adedayo/vantage/pkg/scanner"
 )
 
 // SetCorroborator replaces the takeover HTTP corroboration function for the

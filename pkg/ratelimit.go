@@ -1,4 +1,4 @@
-package dnsaudit
+package vantage
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 const DefaultQueryRate = 50
 
 // QueryRateEnvVar overrides the default rate.
-const QueryRateEnvVar = "DNSAUDIT_QUERY_RATE"
+const QueryRateEnvVar = "VANTAGE_QUERY_RATE"
 
 var (
 	rateMu      sync.Mutex

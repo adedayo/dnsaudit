@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // Exit codes are a public contract. They are deliberately granular so that a

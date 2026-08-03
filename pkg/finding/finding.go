@@ -1,9 +1,9 @@
-// Package finding defines the vocabulary dnsaudit uses to report DNS security
+// Package finding defines the vocabulary vantage uses to report DNS security
 // posture: severities, confidences, evidence, findings and the result envelope
 // that wraps them.
 //
 // The package is deliberately free of DNS logic and MUST NOT import
-// github.com/adedayo/dnsaudit/pkg/scanner. Dependencies flow one way: checks
+// github.com/adedayo/vantage/pkg/scanner. Dependencies flow one way: checks
 // produce findings, findings know nothing about checks.
 package finding
 
@@ -178,7 +178,7 @@ func ComputedEvidence(name, value string) Evidence {
 
 // Finding is a single assessed observation about a target.
 type Finding struct {
-	// ID is the stable catalogue identifier, e.g. "DNSA-SPF-004". IDs are
+	// ID is the stable catalogue identifier, e.g. "SURF-SPF-004". IDs are
 	// permanent: once published, an ID is never reassigned or redefined.
 	ID string `json:"id"`
 	// Title is a short human-readable summary.

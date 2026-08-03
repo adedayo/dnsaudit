@@ -1,4 +1,4 @@
-package dnsaudit
+package vantage
 
 import (
 	"context"

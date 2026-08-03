@@ -15,7 +15,7 @@ import (
 
 	"github.com/miekg/dns"
 
-	d "github.com/adedayo/dnsaudit/pkg"
+	d "github.com/adedayo/vantage/pkg"
 )
 
 // lookupTXTWithServer is a server-parameterised TXT lookup.

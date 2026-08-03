@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dnsaudit "github.com/adedayo/dnsaudit/pkg"
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	vantage "github.com/adedayo/vantage/pkg"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // This is the end-to-end test the AXFR check most needed and least had.
@@ -83,8 +83,8 @@ func serveZone(t *testing.T, transferable bool) {
 	go func() { _ = resolver.ActivateAndServe() }()
 	t.Cleanup(func() { _ = resolver.Shutdown() })
 
-	dnsaudit.SetResolvers(udp.LocalAddr().String())
-	t.Cleanup(func() { dnsaudit.ResetResolverCache() })
+	vantage.SetResolvers(udp.LocalAddr().String())
+	t.Cleanup(func() { vantage.ResetResolverCache() })
 
 	original := zoneTransferPort
 	zoneTransferPort = port
@@ -104,7 +104,7 @@ func TestZoneTransferCheckReportsDisclosure(t *testing.T) {
 	require.Equal(t, finding.StateOK, out.State)
 
 	require.Len(t, out.Findings, 1)
-	assert.Equal(t, "DNSA-AXFR-001", out.Findings[0].ID)
+	assert.Equal(t, "SURF-AXFR-001", out.Findings[0].ID)
 
 	// The finding must prove the disclosure through evidence a reader can
 	// check, not merely assert it.

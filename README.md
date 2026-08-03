@@ -1,21 +1,27 @@
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
-[![golangci-lint](https://github.com/adedayo/dnsaudit/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/adedayo/dnsaudit/actions/workflows/golangci-lint.yml)
-[![build](https://github.com/adedayo/dnsaudit/actions/workflows/build.yml/badge.svg)](https://github.com/adedayo/dnsaudit/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/tag/adedayo/dnsaudit?label=release)](https://github.com/adedayo/dnsaudit/releases)
+[![golangci-lint](https://github.com/adedayo/vantage/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/adedayo/vantage/actions/workflows/golangci-lint.yml)
+[![build](https://github.com/adedayo/vantage/actions/workflows/build.yml/badge.svg)](https://github.com/adedayo/vantage/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/tag/adedayo/vantage?label=release)](https://github.com/adedayo/vantage/releases)
 
-# DNS Audit
+# Vantage
 
-**See what an attacker sees.** `dnsaudit` audits your external attack surface
-posture from public DNS records — no agents, no credentials, and nothing
-touching the systems being assessed.
+**See what an attacker sees.** `vantage` audits the attack surface an
+organisation exposes, from the vantage point of someone looking at it — no
+agents, no credentials, and nothing touching the systems being assessed.
 
 Reconnaissance starts with DNS, because DNS answers everybody. Before an
 attacker sends a single packet at you, it tells them which hosts you expose,
 whose infrastructure they sit on, whether mail claiming to be from you can be
 forged, whether your delegation can be tampered with, and which names your
-certificates have already made public. `dnsaudit` asks the same questions
+certificates have already made public. `vantage` asks the same questions
 first, and reports what an attacker would find, ranked by what it would cost
 you.
+
+Today every assessment is made from the **external** vantage: the public
+internet, with no privileged position. That is what `--from external`, the
+default, means. Internal vantages — what is exposed to someone who has already
+reached an internal network — are the direction of travel, not a current
+capability.
 
 It grades a domain A–F, explains every finding with the evidence behind it and
 the remediation that closes it, and emits JSON, NDJSON, CSV or SARIF for a
@@ -35,15 +41,15 @@ required.
 **Homebrew** (macOS and Linux)
 
 ```sh
-brew install adedayo/tap/dnsaudit
+brew install adedayo/tap/vantage
 ```
 
-Upgrade with `brew upgrade dnsaudit`.
+Upgrade with `brew upgrade vantage`.
 
 **Direct download**
 
 Download a binary for your platform from the
-[latest release](https://github.com/adedayo/dnsaudit/releases/latest). Every
+[latest release](https://github.com/adedayo/vantage/releases/latest). Every
 release ships signed checksums and an SBOM alongside the archives.
 
 **macOS and Linux**
@@ -53,26 +59,26 @@ release ships signed checksums and an SBOM alongside the archives.
 VERSION=1.0.1
 PLATFORM=darwin_arm64
 
-curl -fsSLO "https://github.com/adedayo/dnsaudit/releases/download/v${VERSION}/dnsaudit_${VERSION}_${PLATFORM}.tar.gz"
-curl -fsSLO "https://github.com/adedayo/dnsaudit/releases/download/v${VERSION}/dnsaudit_${VERSION}_checksums.txt"
+curl -fsSLO "https://github.com/adedayo/vantage/releases/download/v${VERSION}/vantage_${VERSION}_${PLATFORM}.tar.gz"
+curl -fsSLO "https://github.com/adedayo/vantage/releases/download/v${VERSION}/vantage_${VERSION}_checksums.txt"
 
 # Verify before running it. A security tool that arrives unverified is a
 # contradiction.
-shasum -a 256 -c dnsaudit_${VERSION}_checksums.txt --ignore-missing
+shasum -a 256 -c vantage_${VERSION}_checksums.txt --ignore-missing
 
-tar -xzf "dnsaudit_${VERSION}_${PLATFORM}.tar.gz"
-sudo mv dnsaudit /usr/local/bin/
-dnsaudit version
+tar -xzf "vantage_${VERSION}_${PLATFORM}.tar.gz"
+sudo mv vantage /usr/local/bin/
+vantage version
 ```
 
 On macOS the binary is not notarised, so Gatekeeper will quarantine a download
 made through a browser. Fetching it with `curl` as above avoids that; otherwise
-clear the attribute with `xattr -d com.apple.quarantine dnsaudit`.
+clear the attribute with `xattr -d com.apple.quarantine vantage`.
 
 **Windows**
 
-Download `dnsaudit_<version>_windows_amd64.zip` (or `windows_arm64`), extract it
-and put `dnsaudit.exe` somewhere on your `PATH`.
+Download `vantage_<version>_windows_amd64.zip` (or `windows_arm64`), extract it
+and put `vantage.exe` somewhere on your `PATH`.
 
 **With Go**
 
@@ -80,10 +86,10 @@ If you already have a Go toolchain, `go install` builds from source and needs no
 release archive:
 
 ```sh
-go install github.com/adedayo/dnsaudit@latest
+go install github.com/adedayo/vantage@latest
 ```
 
-This puts `dnsaudit` in `$(go env GOPATH)/bin`, which needs to be on your `PATH`.
+This puts `vantage` in `$(go env GOPATH)/bin`, which needs to be on your `PATH`.
 Use `@v1.0.1` in place of `@latest` to pin a version.
 
 > Installing the command is not the same as depending on the Go packages. See
@@ -110,7 +116,7 @@ Use `@v1.0.1` in place of `@latest` to pin a version.
 | `ptr <domain>` | Reverse DNS lookup |
 | `dnsbl <domain> -b <zone>` | DNS blocklist reputation check |
 | `public-suffix <domain>` | Public Suffix List validation |
-| `catalogue` | List every finding dnsaudit can report |
+| `catalogue` | List every finding vantage can report |
 | `explain <finding-id>` | Explain a finding and how to fix it |
 | `version` | Version, commit, build date and platform (also `--version`) |
 
@@ -120,16 +126,16 @@ By default a command retrieves and prints the record. Pass `--findings` — or a
 structured output format — to assess it instead:
 
 ```sh
-dnsaudit spf example.com                    # v=spf1 include:_spf.example.com ~all
-dnsaudit spf example.com --findings         # prioritised findings with remediation
-dnsaudit dmarc example.com -o json          # full result envelope
+vantage spf example.com                    # v=spf1 include:_spf.example.com ~all
+vantage spf example.com --findings         # prioritised findings with remediation
+vantage dmarc example.com -o json          # full result envelope
 ```
 
 Findings carry a stable identifier, a severity, the evidence behind the
 conclusion and reviewed remediation guidance:
 
 ```
-LOW       DNSA-SPF-005  SPF record uses softfail (~all) rather than fail (-all)
+LOW       SURF-SPF-005  SPF record uses softfail (~all) rather than fail (-all)
           The record terminates in `~all`. Mail from unauthorised hosts is
           marked but generally still delivered...
           Evidence: example.com TXT = v=spf1 include:_spf.example.com ~all
@@ -140,8 +146,8 @@ LOW       DNSA-SPF-005  SPF record uses softfail (~all) rather than fail (-all)
 Look any identifier up without running an assessment:
 
 ```sh
-dnsaudit catalogue --check spf
-dnsaudit explain DNSA-SPF-004
+vantage catalogue --check spf
+vantage explain SURF-SPF-004
 ```
 
 ### Output formats
@@ -176,7 +182,7 @@ happened — and a resolver outage is never mistaken for a security finding:
 | 4 | Completed, but one or more checks failed (partial result) |
 
 ```sh
-dnsaudit spf example.com --fail-on high -o sarif > results.sarif
+vantage spf example.com --fail-on high -o sarif > results.sarif
 ```
 
 ### Absent versus unassessed
@@ -188,7 +194,7 @@ when in truth it was never assessed.
 
 ## Network egress
 
-Almost everything `dnsaudit` does is DNS. One check goes further: **MTA-STS
+Almost everything `vantage` does is DNS. One check goes further: **MTA-STS
 retrieves the policy file** over HTTPS from
 `https://mta-sts.<domain>/.well-known/mta-sts.txt`, because the TXT record alone
 proves nothing. A domain advertising a policy it does not actually serve has the
@@ -207,11 +213,11 @@ policy-dependent rules are skipped, and the retrieved policy is absent from the
 evidence so the report never implies a document was inspected when it was not.
 
 ```sh
-dnsaudit audit example.com --no-network   # DNS only
-dnsaudit mtasts example.com --no-network  # TXT record only
+vantage audit example.com --no-network   # DNS only
+vantage mtasts example.com --no-network  # TXT record only
 ```
 
-Checks declare their egress, so `dnsaudit audit --list-checks` shows the blast
+Checks declare their egress, so `vantage audit --list-checks` shows the blast
 radius before you invoke anything.
 
 ### Third-party services
@@ -237,8 +243,8 @@ say so in the report:
   verdict.
 
 ```sh
-dnsaudit audit example.com --enumerate
-dnsaudit audit example.com --checks net --expect-jurisdiction GB,IE
+vantage audit example.com --enumerate
+vantage audit example.com --checks net --expect-jurisdiction GB,IE
 ```
 
 `--expect-jurisdiction` names the countries you expect to be hosted in; anything
@@ -253,8 +259,8 @@ the names you gave it.
 
 ### Caches
 
-Provider ranges and CT results are cached under `~/.cache/dnsaudit`
-(`~/Library/Caches/dnsaudit` on macOS):
+Provider ranges and CT results are cached under `~/.cache/vantage`
+(`~/Library/Caches/vantage` on macOS):
 
 | Data | Location | Lifetime |
 |---|---|---|
@@ -274,7 +280,7 @@ that matters when comparing two runs.
 
 ## Authority to assess
 
-`dnsaudit` is an assessment tool, not an exploitation tool. It observes; it
+`vantage` is an assessment tool, not an exploitation tool. It observes; it
 never claims a resource, guesses a credential or attempts to take anything over.
 Some checks nonetheless query the target's own nameservers directly rather than
 going through a resolver:
@@ -289,8 +295,8 @@ going through a resolver:
   hostnames — it assesses the apex plus whatever you supply:
 
 ```sh
-dnsaudit audit example.com --checks tko --hosts www.example.com,assets.example.com
-dnsaudit audit example.com --checks tko --hosts-file hosts.txt
+vantage audit example.com --checks tko --hosts www.example.com,assets.example.com
+vantage audit example.com --checks tko --hosts-file hosts.txt
 ```
 
 - **`axfr`** asks each authoritative server for a zone transfer. A correctly
@@ -317,10 +323,10 @@ unlawful in your jurisdiction regardless of how gentle the queries are.
 
 ## Choosing resolvers
 
-By default `dnsaudit` discovers nameservers in this order:
+By default `vantage` discovers nameservers in this order:
 
 1. The `--resolver` flag (repeatable).
-2. The `DNSAUDIT_RESOLVERS` environment variable (comma-separated).
+2. The `VANTAGE_RESOLVERS` environment variable (comma-separated).
 3. Platform-native configuration:
    - Linux / macOS / BSD: `/etc/resolv.conf`
    - Windows: `GetAdaptersAddresses` (IP Helper API)
@@ -329,9 +335,9 @@ By default `dnsaudit` discovers nameservers in this order:
 Addresses may be given with or without a port; `53` is assumed.
 
 ```sh
-dnsaudit caa example.com --resolver 1.1.1.1
-dnsaudit spf example.com --resolver 8.8.8.8 --resolver 9.9.9.9
-DNSAUDIT_RESOLVERS=1.1.1.1,8.8.8.8 dnsaudit dmarc example.com
+vantage caa example.com --resolver 1.1.1.1
+vantage spf example.com --resolver 8.8.8.8 --resolver 9.9.9.9
+VANTAGE_RESOLVERS=1.1.1.1,8.8.8.8 vantage dmarc example.com
 ```
 
 Resolvers are tried in order, so one unreachable nameserver does not fail the
@@ -344,21 +350,21 @@ nameserver is abandoned after 2 seconds rather than stalling the audit.
 
 | Budget | Scope | Default | Flag | Environment variable |
 |---|---|---|---|---|
-| Query | One attempt against one resolver | `2s` | `--query-timeout` | `DNSAUDIT_QUERY_TIMEOUT` |
-| Total | The whole lookup, across all resolvers | `10s` | `--timeout` | `DNSAUDIT_TIMEOUT` |
+| Query | One attempt against one resolver | `2s` | `--query-timeout` | `VANTAGE_QUERY_TIMEOUT` |
+| Total | The whole lookup, across all resolvers | `10s` | `--timeout` | `VANTAGE_TIMEOUT` |
 
 If you are on a slow, lossy or high-latency link (satellite, VPN, Tor, filtered
 networks) and want the tool to wait longer, raise either or both:
 
 ```sh
 # Be more patient with each resolver
-dnsaudit spf example.com --query-timeout 5s --timeout 30s
+vantage spf example.com --query-timeout 5s --timeout 30s
 
 # Same, via the environment
-DNSAUDIT_QUERY_TIMEOUT=5s DNSAUDIT_TIMEOUT=30s dnsaudit spf example.com
+VANTAGE_QUERY_TIMEOUT=5s VANTAGE_TIMEOUT=30s vantage spf example.com
 
 # Or fail over even faster on a flaky network
-dnsaudit spf example.com --query-timeout 500ms
+vantage spf example.com --query-timeout 500ms
 ```
 
 Precedence is flag → environment variable → default. A single attempt never
@@ -367,7 +373,7 @@ total timeout always wins.
 
 ## Library
 
-`dnsaudit` is primarily a command-line tool. The Go packages are exported so it
+`vantage` is primarily a command-line tool. The Go packages are exported so it
 can be embedded — the author uses them in other projects — but they are not a
 supported API, and they are not covered by the version guarantees below. See
 [Compatibility](#compatibility) before depending on them.
@@ -379,9 +385,9 @@ errors prefixed with `error:` (see the sentinel table in spec `002`).
 ctx := context.Background()
 
 // Optional: pin the resolvers and timeouts used by the library.
-dnsaudit.SetResolvers("1.1.1.1")
-dnsaudit.SetQueryTimeout(5 * time.Second)  // wait longer per resolver
-dnsaudit.SetTotalTimeout(30 * time.Second) // and longer overall
+vantage.SetResolvers("1.1.1.1")
+vantage.SetQueryTimeout(5 * time.Second)  // wait longer per resolver
+vantage.SetTotalTimeout(30 * time.Second) // and longer overall
 
 policy, err := scanner.LookupDMARC(ctx, "example.com")
 ```
@@ -396,7 +402,7 @@ most people depend on and what is expensive to break. Within a major version:
 | Stable | Meaning |
 |---|---|
 | Exit codes | 0–4 keep their meanings; a script gating on them keeps working |
-| Finding identifiers | `DNSA-SPF-004` always denotes the same condition. Rules may be added, and the prose or severity of an existing rule may be revised, but an identifier is never reused for a different condition |
+| Finding identifiers | `SURF-SPF-004` always denotes the same condition. Rules may be added, and the prose or severity of an existing rule may be revised, but an identifier is never reused for a different condition |
 | Structured output | Fields are added, not removed or repurposed; `schema_version` carries the contract |
 | Command and flag names | Existing invocations keep working; flags may be added |
 
@@ -406,7 +412,7 @@ commit if you embed them.
 
 This is a deliberate trade. Freezing the Go API would slow the work that makes
 the tool useful, for the benefit of a handful of consumers who can pin instead;
-freezing the CLI costs little and protects everyone who has wired `dnsaudit`
+freezing the CLI costs little and protects everyone who has wired `vantage`
 into a pipeline.
 
 ## Specifications
@@ -483,7 +489,7 @@ test suite and then GoReleaser. Each release ships:
 - A `checksums.txt` file with SHA-256 digests of every archive.
 - An SBOM per archive, generated with [syft](https://github.com/anchore/syft).
 - Version, commit and build date baked into the binary — check with
-  `dnsaudit version`.
+  `vantage version`.
 
 Local `goreleaser` runs skip SBOM generation automatically when syft is not
 installed.

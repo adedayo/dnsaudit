@@ -10,18 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/adedayo/dnsaudit/pkg/finding"
+	"github.com/adedayo/vantage/pkg/finding"
 )
 
 // sample builds a representative result: several severities, evidence, a check
 // state and a failed check.
 func sample() *finding.Result {
-	r := finding.NewResult("dnsaudit", "v1.0.0-test")
+	r := finding.NewResult("vantage", "v1.0.0-test")
 	r.AddTarget("example.com")
 	r.Add(
-		finding.New("DNSA-SPF-004", "example.com",
+		finding.New("SURF-SPF-004", "example.com",
 			finding.DNSEvidence("example.com", "TXT", "v=spf1 +all", "1.1.1.1:53")),
-		finding.New("DNSA-DMARC-002", "example.com",
+		finding.New("SURF-DMARC-002", "example.com",
 			finding.DNSEvidence("_dmarc.example.com", "TXT", "v=DMARC1; p=none", "1.1.1.1:53")),
 	)
 	r.AddCheck("spf", "example.com", finding.StateOK, "v=spf1 +all")
@@ -67,7 +67,7 @@ func TestRenderTextIncludesEvidenceAndRemediation(t *testing.T) {
 	out := render(t, Options{Format: FormatText})
 
 	assert.Contains(t, out, "CRITICAL")
-	assert.Contains(t, out, "DNSA-SPF-004")
+	assert.Contains(t, out, "SURF-SPF-004")
 	assert.Contains(t, out, "v=spf1 +all", "text output must show the evidence")
 	assert.Contains(t, out, "Fix:", "text output must show the remediation")
 	assert.Contains(t, out, "Posture:")
@@ -78,7 +78,7 @@ func TestRenderTextIncludesEvidenceAndRemediation(t *testing.T) {
 // attention is finite and should land on the worst problem.
 func TestRenderTextOrdersMostSevereFirst(t *testing.T) {
 	out := render(t, Options{Format: FormatText})
-	assert.Less(t, strings.Index(out, "DNSA-SPF-004"), strings.Index(out, "DNSA-DMARC-002"))
+	assert.Less(t, strings.Index(out, "SURF-SPF-004"), strings.Index(out, "SURF-DMARC-002"))
 }
 
 func TestRenderTextHasNoColourByDefault(t *testing.T) {
@@ -91,7 +91,7 @@ func TestRenderTextHasNoColourByDefault(t *testing.T) {
 // readers never see: "no findings (grade A)" printed over a check that lost
 // half its provider coverage is the most misleading thing this tool could say.
 func TestRenderTextSurfacesWarningRecords(t *testing.T) {
-	r := finding.NewResult("dnsaudit", "v1.0.0-test")
+	r := finding.NewResult("vantage", "v1.0.0-test")
 	r.AddTarget("example.com")
 	r.AddCheck("net", "example.com", finding.StateOK,
 		"warning: provider ranges unavailable, attribution incomplete: Amazon Web Services",
@@ -111,7 +111,7 @@ func TestRenderTextSurfacesWarningRecords(t *testing.T) {
 
 // Ordinary records are data, not warnings, and must not be promoted.
 func TestRenderTextDoesNotTreatOrdinaryRecordsAsWarnings(t *testing.T) {
-	r := finding.NewResult("dnsaudit", "v1.0.0-test")
+	r := finding.NewResult("vantage", "v1.0.0-test")
 	r.AddTarget("example.com")
 	r.AddCheck("net", "example.com", finding.StateOK, "example.com 52.1.2.3 (Amazon Web Services)")
 	r.Finalise()
@@ -129,7 +129,7 @@ func TestRenderJSONIsValidAndComplete(t *testing.T) {
 		"JSON output must be parseable")
 
 	assert.Equal(t, finding.SchemaVersion, result.SchemaVersion)
-	assert.Equal(t, "dnsaudit", result.Tool.Name)
+	assert.Equal(t, "vantage", result.Tool.Name)
 	assert.Equal(t, []string{"example.com"}, result.Targets)
 	assert.Len(t, result.Findings, 2)
 	assert.Equal(t, 1, result.Summary.Critical)
@@ -178,7 +178,7 @@ func TestRenderCSVHasHeaderAndRows(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 3, "one header row plus two findings")
 	assert.Equal(t, csvHeader, rows[0])
-	assert.Equal(t, "DNSA-SPF-004", rows[1][1])
+	assert.Equal(t, "SURF-SPF-004", rows[1][1])
 	assert.Equal(t, "critical", rows[1][2])
 }
 
@@ -199,7 +199,7 @@ func TestRenderSARIFIsWellFormed(t *testing.T) {
 	require.True(t, ok)
 	driver, ok := tool["driver"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, "dnsaudit", driver["name"])
+	assert.Equal(t, "vantage", driver["name"])
 	rules, ok := driver["rules"].([]any)
 	require.True(t, ok)
 	assert.Len(t, rules, 2)
@@ -209,7 +209,7 @@ func TestRenderSARIFIsWellFormed(t *testing.T) {
 	require.Len(t, results, 2)
 	first, ok := results[0].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, "DNSA-SPF-004", first["ruleId"])
+	assert.Equal(t, "SURF-SPF-004", first["ruleId"])
 	assert.Equal(t, "error", first["level"], "critical must map to the SARIF error level")
 }
 
@@ -219,7 +219,7 @@ func TestMinSeverityFilters(t *testing.T) {
 	var result finding.Result
 	require.NoError(t, json.Unmarshal([]byte(out), &result))
 	assert.Len(t, result.Findings, 1)
-	assert.Equal(t, "DNSA-SPF-004", result.Findings[0].ID)
+	assert.Equal(t, "SURF-SPF-004", result.Findings[0].ID)
 }
 
 func TestSummaryOmitsDetail(t *testing.T) {
@@ -261,7 +261,7 @@ func TestFieldsProjection(t *testing.T) {
 	assert.Empty(t, f.Title)
 	// ID and target are never projected away: without them the finding is not
 	// interpretable at all.
-	assert.Equal(t, "DNSA-SPF-004", f.ID)
+	assert.Equal(t, "SURF-SPF-004", f.ID)
 	assert.Equal(t, "example.com", f.Target)
 }
 
@@ -282,7 +282,7 @@ func TestRenderIsDeterministic(t *testing.T) {
 
 func TestRenderEmptyResult(t *testing.T) {
 	var buf bytes.Buffer
-	empty := finding.NewResult("dnsaudit", "test")
+	empty := finding.NewResult("vantage", "test")
 	empty.AddTarget("clean.example")
 
 	require.NoError(t, Render(&buf, empty, Options{Format: FormatText}))
