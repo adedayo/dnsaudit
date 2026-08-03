@@ -211,7 +211,12 @@ ok "Version information is available"
 # resolves to no guidance is worse than useless to whoever has to act on it.
 "$SMOKE_BIN" catalogue >/dev/null || fail "'dnsaudit catalogue' failed."
 "$SMOKE_BIN" explain DNSA-SPF-004 >/dev/null || fail "'dnsaudit explain' failed."
-"$SMOKE_BIN" catalogue -o json | grep -q '"remediation"' ||
+# Captured rather than piped into grep -q. Under `set -o pipefail`, grep -q
+# exits at the first match and the still-writing producer takes SIGPIPE, so the
+# pipeline reports 141 and the check fails despite having found what it wanted.
+CATALOGUE_JSON="$("$SMOKE_BIN" catalogue -o json)" ||
+  fail "'dnsaudit catalogue -o json' failed."
+grep -q '"remediation"' <<<"$CATALOGUE_JSON" ||
   fail "Catalogue JSON is missing remediation guidance."
 if "$SMOKE_BIN" explain DNSA-NOPE-001 >/dev/null 2>&1; then
   fail "'explain' accepted an unknown finding ID."
@@ -221,9 +226,9 @@ fi
 # a misspelt check name must be rejected rather than silently skipped: a run
 # that quietly assesses nothing is the most dangerous output this tool could
 # produce.
-"$SMOKE_BIN" audit --list-checks >/dev/null || fail "'audit --list-checks' failed."
+CHECK_LIST="$("$SMOKE_BIN" audit --list-checks)" || fail "'audit --list-checks' failed."
 for check in spf dmarc dkim dnssec nssec caa mtasts mx ptr; do
-  "$SMOKE_BIN" audit --list-checks | grep -qE "^${check}[[:space:]]" ||
+  grep -qE "^${check}[[:space:]]" <<<"$CHECK_LIST" ||
     fail "Check '${check}' is missing from the audit registry."
 done
 if "$SMOKE_BIN" audit example.com --checks not-a-check >/dev/null 2>&1; then
