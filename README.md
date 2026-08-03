@@ -13,6 +13,56 @@ It runs on **Linux, macOS and Windows** — resolver configuration is discovered
 a platform-native way with graceful fallbacks, so no `/etc/resolv.conf` is
 required.
 
+## Install
+
+Download a binary for your platform from the
+[latest release](https://github.com/adedayo/dnsaudit/releases/latest). Every
+release ships signed checksums and an SBOM alongside the archives.
+
+**macOS and Linux**
+
+```sh
+# Pick the archive matching your platform, e.g. darwin_arm64, linux_amd64.
+VERSION=1.0.1
+PLATFORM=darwin_arm64
+
+curl -fsSLO "https://github.com/adedayo/dnsaudit/releases/download/v${VERSION}/dnsaudit_${VERSION}_${PLATFORM}.tar.gz"
+curl -fsSLO "https://github.com/adedayo/dnsaudit/releases/download/v${VERSION}/dnsaudit_${VERSION}_checksums.txt"
+
+# Verify before running it. A security tool that arrives unverified is a
+# contradiction.
+shasum -a 256 -c dnsaudit_${VERSION}_checksums.txt --ignore-missing
+
+tar -xzf "dnsaudit_${VERSION}_${PLATFORM}.tar.gz"
+sudo mv dnsaudit /usr/local/bin/
+dnsaudit version
+```
+
+On macOS the binary is not notarised, so Gatekeeper will quarantine a download
+made through a browser. Fetching it with `curl` as above avoids that; otherwise
+clear the attribute with `xattr -d com.apple.quarantine dnsaudit`.
+
+**Windows**
+
+Download `dnsaudit_<version>_windows_amd64.zip` (or `windows_arm64`), extract it
+and put `dnsaudit.exe` somewhere on your `PATH`.
+
+**With Go**
+
+If you already have a Go toolchain, `go install` builds from source and needs no
+release archive:
+
+```sh
+go install github.com/adedayo/dnsaudit@latest
+```
+
+This puts `dnsaudit` in `$(go env GOPATH)/bin`, which needs to be on your `PATH`.
+Use `@v1.0.1` in place of `@latest` to pin a version.
+
+> Installing the command is not the same as depending on the Go packages. See
+> [Compatibility](#compatibility) — the CLI is the supported surface; `pkg/` is
+> an implementation detail.
+
 ## Commands
 
 | Command | Description |
