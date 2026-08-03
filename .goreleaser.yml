@@ -84,8 +84,23 @@ homebrew_casks:
     repository:
       owner: adedayo
       name: homebrew-tap
-      branch: master
-      token: '{{ index .Env "HOMEBREW_GITHUB_TOKEN" }}'
+      # No branch is pinned, so GoReleaser uses the tap's default branch.
+      # That is currently master, which is not a Homebrew convention —
+      # Homebrew's own repositories are all on main — but an artefact of the
+      # tap being created in 2018, before GitHub changed the default. Leaving
+      # it unpinned means renaming the tap's branch will not silently stop
+      # cask updates.
+      #
+      # This must be exactly `{{ .Env.VAR }}`. GoReleaser validates the token
+      # field for that shape specifically and rejects any other interpolation,
+      # including `{{ index .Env "..." }}`, with:
+      #   expected {{ .Env.VAR_NAME }} only (no plain-text or other interpolation)
+      #
+      # The workflow always defines HOMEBREW_GITHUB_TOKEN, falling back to
+      # PAT_TOKEN and then to the empty string, so the key is always present
+      # and this never fails on a missing variable. skip_upload above still
+      # uses `index`, which is an ordinary template and unaffected.
+      token: "{{ .Env.HOMEBREW_GITHUB_TOKEN }}"
     commit_author:
       name: "Dayo Adetoye"
       email: dayo.dev@gmail.com
