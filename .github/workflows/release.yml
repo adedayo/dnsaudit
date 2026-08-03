@@ -41,6 +41,9 @@ jobs:
           # the default GITHUB_TOKEN cannot reach: it is scoped to this
           # repository only. Needs contents:write on the tap repository.
           #
-          # When the secret is absent this is empty, and .goreleaser.yml skips
-          # the cask rather than failing the release.
-          HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+          # Falls back to PAT_TOKEN, matching checkmate's releaser.yaml, so
+          # whichever of the two secrets already exists is used.
+          #
+          # When neither is set this is empty, and .goreleaser.yml skips the
+          # cask rather than failing the release.
+          HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN || secrets.PAT_TOKEN }}
