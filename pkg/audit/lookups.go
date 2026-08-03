@@ -42,6 +42,13 @@ func resolveMXHosts(ctx context.Context, c *Cache, hosts []analyse.MXHost) []ana
 			}
 		}
 
+		// The registrable domain identifies the operator behind the exchanger,
+		// which is what DNSA-MX-005 rests on. It is derived here rather than in
+		// the judgement because it needs the public suffix list: a two-label
+		// approximation would treat two unrelated British organisations, both
+		// under .co.uk, as one provider.
+		h.Provider = organisationalDomain(h.Host)
+
 		resolved = append(resolved, h)
 	}
 	return resolved

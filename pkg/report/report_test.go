@@ -86,6 +86,41 @@ func TestRenderTextHasNoColourByDefault(t *testing.T) {
 	assert.NotContains(t, out, "\033[", "colour must be opt-in")
 }
 
+// A check can succeed and still have been unable to do its whole job. Text is
+// the default format, so a degradation visible only in JSON is one most
+// readers never see: "no findings (grade A)" printed over a check that lost
+// half its provider coverage is the most misleading thing this tool could say.
+func TestRenderTextSurfacesWarningRecords(t *testing.T) {
+	r := finding.NewResult("dnsaudit", "v1.0.0-test")
+	r.AddTarget("example.com")
+	r.AddCheck("net", "example.com", finding.StateOK,
+		"warning: provider ranges unavailable, attribution incomplete: Amazon Web Services",
+		"example.com 52.1.2.3 (not attributed — coverage incomplete)")
+	r.Finalise()
+
+	var buf bytes.Buffer
+	require.NoError(t, Render(&buf, r, Options{Format: FormatText}))
+	out := buf.String()
+
+	assert.Contains(t, out, "Warning:")
+	assert.Contains(t, out, "attribution incomplete")
+	// The "warning:" prefix is a marker for the renderer, not something to
+	// print back at the reader.
+	assert.NotContains(t, out, "warning: provider")
+}
+
+// Ordinary records are data, not warnings, and must not be promoted.
+func TestRenderTextDoesNotTreatOrdinaryRecordsAsWarnings(t *testing.T) {
+	r := finding.NewResult("dnsaudit", "v1.0.0-test")
+	r.AddTarget("example.com")
+	r.AddCheck("net", "example.com", finding.StateOK, "example.com 52.1.2.3 (Amazon Web Services)")
+	r.Finalise()
+
+	var buf bytes.Buffer
+	require.NoError(t, Render(&buf, r, Options{Format: FormatText}))
+	assert.NotContains(t, buf.String(), "Warning:")
+}
+
 func TestRenderJSONIsValidAndComplete(t *testing.T) {
 	out := render(t, Options{Format: FormatJSON})
 

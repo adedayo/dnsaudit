@@ -34,6 +34,12 @@ func init() {
 	Register(ptrCheck())
 	Register(tlsrptCheck())
 	Register(bimiCheck())
+	Register(wildcardCheck())
+	Register(delegationCheck())
+	Register(takeoverCheck())
+	Register(zoneTransferCheck())
+	Register(networkCheck())
+	Register(certificateTransparencyCheck())
 }
 
 // notFound reports the absent state without treating it as a failure.
@@ -212,24 +218,35 @@ func mxCheck() Check {
 func dnssecCheck() Check {
 	return CheckFunc{
 		Description: Description{
-			Name:           "dnssec",
-			Summary:        "DNSSEC signing key presence.",
-			Network:        []Network{NetworkDNS},
-			Findings:       nil,
-			TypicalQueries: 1,
+			Name: "dnssec",
+			Summary: "DNSSEC chain of trust: keys, parent delegation, algorithms, " +
+				"signature validity and denial of existence.",
+			Network:  []Network{NetworkDNS},
+			Findings: findingIDs("dnssec"),
+			// DNSKEY, DS, SOA, NSEC3PARAM and a denial probe. These queries set
+			// the DO bit, so they are made directly rather than through the run
+			// cache, whose answers are collected without DNSSEC records.
+			TypicalQueries: 5,
 		},
 		Fn: func(ctx context.Context, t Target) (Outcome, error) {
-			status, err := scanner.CheckDNSSEC(ctx, t.Domain)
+			zone, err := scanner.FetchDNSSECZone(ctx, t.Domain)
 			if err != nil {
 				if isAbsent(err) {
-					return notFound()
+					return notFound(analyse.DNSSEC(analyse.Origin{Target: t.Domain}, zone)...)
 				}
 				return Outcome{}, err
 			}
-			if strings.Contains(strings.ToLower(status), "not") {
-				return notFound()
+
+			origin := analyse.Origin{Target: t.Domain, Source: zone.Source}
+			findings := analyse.DNSSEC(origin, zone)
+			if !zone.Signed() {
+				return notFound(findings...)
 			}
-			return Outcome{State: finding.StateOK, Records: []string{status}}, nil
+			return Outcome{
+				State:    finding.StateOK,
+				Records:  analyse.DNSSECRecords(zone),
+				Findings: findings,
+			}, nil
 		},
 	}
 }
@@ -438,8 +455,227 @@ func bimiCheck() Check {
 	}
 }
 
+func wildcardCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "wild",
+			Summary: "Wildcard records: whether the zone answers for names that were " +
+				"never registered.",
+			Network:        []Network{NetworkDNS},
+			Findings:       findingIDs("wild"),
+			TypicalQueries: wildcardProbeCount * 4,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			obs, err := probeWildcard(ctx, t.Cache, t.Domain)
+			if err != nil {
+				return Outcome{}, err
+			}
+
+			origin := analyse.Origin{Target: t.Domain}
+			findings := analyse.Wildcard(origin, obs)
+			records := wildcardRecords(obs)
+			if len(records) == 0 {
+				// No wildcard is the expected and healthy case. It is reported
+				// as absence of a record rather than as a failure, so a reader
+				// can tell it from a check that could not run.
+				return notFound()
+			}
+			return Outcome{State: finding.StateOK, Records: records, Findings: findings}, nil
+		},
+	}
+}
+
+func delegationCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "ns",
+			Summary: "Nameserver and delegation hygiene: redundancy, lame servers, " +
+				"glue, parent agreement and open recursion.",
+			Network:  []Network{NetworkDNS},
+			Findings: findingIDs("ns"),
+			// The NS set, the parent referral, then per nameserver: addresses,
+			// an SOA query and a recursion probe.
+			TypicalQueries: 12,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			del, err := fetchDelegation(ctx, t.Cache, t.Domain)
+			if err != nil {
+				return Outcome{}, err
+			}
+			if len(del.Nameservers) == 0 {
+				return notFound()
+			}
+
+			findings := analyse.DelegationHygiene(analyse.Origin{Target: t.Domain}, del)
+			return Outcome{
+				State:    finding.StateOK,
+				Records:  delegationRecords(del),
+				Findings: findings,
+			}, nil
+		},
+	}
+}
+
+func takeoverCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "tko",
+			Summary: "Subdomain takeover: aliases to third-party services that no " +
+				"longer hold the name.",
+			Network: []Network{NetworkDNS, NetworkHTTPS},
+			// DNS alone finds the dangling-alias cases, which are the
+			// highest-severity ones. HTTPS only adds corroboration for
+			// services that keep the target resolvable, so --no-network
+			// narrows this check rather than removing it.
+			DegradesWithoutNetwork: true,
+			Findings:               findingIDs("tko"),
+			// The apex and each supplied host: a CNAME query and two existence
+			// queries, plus the wildcard probes and the NS set.
+			TypicalQueries: 18,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			obs, err := fetchTakeover(ctx, t.Cache, t.Domain, t.Hosts, !t.NoNetwork)
+			if err != nil {
+				return Outcome{}, err
+			}
+
+			findings := analyse.Takeover(analyse.Origin{Target: t.Domain}, obs)
+			records := takeoverRecords(obs)
+			if len(records) == 0 && len(findings) == 0 {
+				// No aliases to assess. This is absence of the thing being
+				// looked for, not a clean bill of health for hosts nobody
+				// named: the check is only as broad as the host list given.
+				return notFound()
+			}
+			return Outcome{State: finding.StateOK, Records: records, Findings: findings}, nil
+		},
+	}
+}
+
+func zoneTransferCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "axfr",
+			Summary: "Zone transfer: whether any authoritative server hands the whole " +
+				"zone to an anonymous client.",
+			Network:  []Network{NetworkDNS},
+			Findings: findingIDs("axfr"),
+			// The NS set, each server's address, then one TCP attempt each.
+			TypicalQueries: 10,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			obs, err := attemptZoneTransfers(ctx, t.Cache, t.Domain)
+			if err != nil {
+				return Outcome{}, err
+			}
+			if len(obs.Attempts) == 0 {
+				return notFound()
+			}
+
+			findings := analyse.ZoneTransfer(analyse.Origin{Target: t.Domain}, obs)
+			records := analyse.ZoneTransferRecords(obs)
+
+			// If no server actually answered, the zone was not assessed. It
+			// must not be reported as "ok" with no findings: an operator
+			// reading a clean result for a check that never completed would
+			// conclude transfers are restricted when nothing was established
+			// either way. Outbound TCP/53 is blocked on plenty of corporate
+			// networks, which makes this the common case rather than a rare
+			// one.
+			if !analyse.ZoneTransferAssessed(obs) {
+				return Outcome{
+					State:   finding.StateCheckFailed,
+					Records: records,
+				}, fmt.Errorf("error: no authoritative server answered a zone transfer request for %s", t.Domain)
+			}
+
+			return Outcome{
+				State:    finding.StateOK,
+				Records:  records,
+				Findings: findings,
+			}, nil
+		},
+	}
+}
+
+func networkCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "net",
+			Summary: "Network attribution: which provider and jurisdiction the domain's " +
+				"hosts actually resolve into, and whether any leak internal addressing.",
+			// The provider ranges are fetched from each operator's own
+			// publication, which is egress to a third party rather than to the
+			// target.
+			Network: []Network{NetworkDNS, NetworkThirdParty},
+			// Internal-address leakage is decided from the IANA registries
+			// embedded in the binary, so the most serious rule here works with
+			// no egress at all. Only provider and jurisdiction attribution
+			// needs the downloads.
+			DegradesWithoutNetwork: true,
+			Findings:               findingIDs("net"),
+			// The apex, the MX set, the NS set and each supplied host, twice
+			// over for A and AAAA.
+			TypicalQueries: 16,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			obs, err := fetchNetworkAttribution(ctx, t.Cache, t.Domain,
+				hostsWithin(t.Domain, t.Hosts), t.ExpectJurisdictions, t.NoNetwork)
+			if err != nil {
+				return Outcome{}, err
+			}
+			if len(obs.Hosts) == 0 {
+				return notFound()
+			}
+
+			return Outcome{
+				State:    finding.StateOK,
+				Records:  analyse.NetworkRecords(obs),
+				Findings: analyse.NetworkAttribution(analyse.Origin{Target: t.Domain}, obs),
+			}, nil
+		},
+	}
+}
+
+func certificateTransparencyCheck() Check {
+	return CheckFunc{
+		Description: Description{
+			Name: "ct",
+			Summary: "Certificate Transparency: hostnames the organisation has certified, " +
+				"including ones that no longer resolve.",
+			// The logs are a third party. Nothing here touches the target's
+			// own infrastructure beyond resolving the names discovered.
+			Network: []Network{NetworkThirdParty, NetworkDNS},
+			// Without the logs there are no names to assess and nothing to
+			// report, so under --no-network this check has no reduced form to
+			// fall back on and is excluded honestly rather than run blind.
+			DegradesWithoutNetwork: false,
+			Findings:               findingIDs("ct"),
+			// One query to the log service, then up to four DNS queries for
+			// each discovered name.
+			TypicalQueries: 60,
+		},
+		Fn: func(ctx context.Context, t Target) (Outcome, error) {
+			obs, err := enumerateCT(ctx, t.Cache, t.Domain)
+			if err != nil {
+				return Outcome{}, err
+			}
+			if obs.CertificateCount == 0 {
+				// No certificate has ever been issued for the domain. That is
+				// absence of the thing being looked for, not a clean result.
+				return notFound()
+			}
+
+			return Outcome{
+				State:    finding.StateOK,
+				Records:  analyse.CTRecords(obs),
+				Findings: analyse.CertificateTransparency(analyse.Origin{Target: t.Domain}, obs),
+			}, nil
+		},
+	}
+}
+
 // sendsMail reports whether the domain publishes usable MX records, reusing the
-// run cache so the answer costs at most one query per target.
 //
 // A failed lookup returns true: assuming the domain sends mail keeps a missing
 // SPF record at its full severity. Downgrading a real problem on the strength

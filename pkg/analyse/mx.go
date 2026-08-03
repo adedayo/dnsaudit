@@ -1,6 +1,7 @@
 package analyse
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,11 @@ type MXHost struct {
 	// IsCNAME reports whether the host is a CNAME alias, which RFC 2181
 	// prohibits as an MX target.
 	IsCNAME bool
+	// Provider is the registrable domain of the exchanger's own name, used to
+	// judge whether the whole mail path rests on one operator. Retrieval
+	// computes it, because deriving it correctly needs the public suffix list
+	// and this package is deliberately free of that sort of dependency.
+	Provider string
 }
 
 // IsNull reports whether this is the null MX of RFC 7505, which declares that a
@@ -74,7 +80,70 @@ func MX(o Origin, hosts []MXHost, hasAddress bool) []finding.Finding {
 			finding.ComputedEvidence("mx.host", hosts[0].Host)))
 	}
 
+	findings = append(findings, mxSingleProvider(o, hosts)...)
+
 	return findings
+}
+
+// mxSingleProvider reports a mail path that depends entirely on one operator.
+//
+// The provider is taken from the registrable domain of each exchanger's name,
+// which is a direct observation rather than an inferred ASN: an organisation
+// whose exchangers are all under one registrable domain has one mail operator,
+// and an outage or compromise there stops or intercepts all of its mail. Every
+// exchanger having a distinct preference makes no difference; they fail
+// together.
+//
+// This is Low severity because a single reputable mail provider is the normal
+// and usually correct arrangement. It is reported for operators whose
+// availability requirements justify a second path, not as a defect.
+func mxSingleProvider(o Origin, hosts []MXHost) []finding.Finding {
+	if len(hosts) < 2 {
+		// DNSA-MX-004 already reports the single-exchanger case in full.
+		return nil
+	}
+
+	providers := map[string]bool{}
+	var names []string
+	for _, h := range hosts {
+		p := strings.ToLower(strings.TrimSpace(h.Provider))
+		if p == "" {
+			// An exchanger whose provider cannot be determined may be the
+			// second one. Concluding "all one provider" from an incomplete set
+			// would be a finding drawn from data that is missing.
+			return nil
+		}
+		providers[p] = true
+		names = append(names, h.Host)
+	}
+
+	if len(providers) != 1 {
+		return nil
+	}
+
+	var provider string
+	for p := range providers {
+		provider = p
+	}
+	sort.Strings(names)
+
+	f := finding.New("DNSA-MX-005", o.Target,
+		finding.ComputedEvidence("mx.provider", provider),
+		finding.ComputedEvidence("mx.hosts", strings.Join(names, ", ")),
+		finding.ComputedEvidence("mx.provider_basis", "registrable domain of the exchanger names"))
+
+	// Exchangers named inside the organisation's own domain say nothing about
+	// who runs them: mail.example.com may be self-hosted or may be a vanity
+	// name for a hosted service. The observation stands but the confidence
+	// must not.
+	if inBailiwick(o.Target, provider) {
+		f = f.WithConfidence(finding.ConfidenceLow).
+			WithDescription("Every mail exchanger is named within the organisation's own domain, " +
+				"so who operates them cannot be determined from DNS. This is reported so an " +
+				"operator can confirm whether the mail path has more than one operator behind it.")
+	}
+
+	return []finding.Finding{f}
 }
 
 // ParseMX turns "<preference> <host>" strings, as retrieved from DNS, into

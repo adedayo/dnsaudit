@@ -33,7 +33,7 @@ var profileMembers = map[Profile][]string{
 	ProfileQuick:    {"spf", "dmarc", "dnssec", "caa", "mx"},
 	ProfileStandard: {"spf", "dmarc", "dkim", "dnssec", "caa", "mx", "mtasts", "nssec", "tlsrpt", "bimi"},
 	ProfileEmail:    {"spf", "dmarc", "dkim", "mtasts", "mx", "tlsrpt", "bimi"},
-	ProfileSurface:  {"dnssec", "nssec", "caa", "ptr"},
+	ProfileSurface:  {"dnssec", "nssec", "caa", "ptr", "wild", "ns", "tko", "axfr", "net", "ct"},
 	ProfileDeep:     nil,
 }
 
@@ -42,7 +42,7 @@ var profileSummaries = map[Profile]string{
 	ProfileQuick:    "DNS-only essentials: SPF, DMARC, DNSSEC, CAA and MX.",
 	ProfileStandard: "Balanced default: the quick set plus DKIM, MTA-STS, TLS-RPT, BIMI and NSEC.",
 	ProfileEmail:    "Mail authentication and transport security only.",
-	ProfileSurface:  "Externally exploitable exposure and delegation hygiene.",
+	ProfileSurface:  "Externally exploitable exposure, delegation hygiene and wildcards.",
 	ProfileDeep:     "Every registered check, including those requiring egress.",
 }
 

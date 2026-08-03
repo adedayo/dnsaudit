@@ -511,6 +511,23 @@ var catalogue = index([]Entry{
 		Tags:       []string{TagResilience},
 	},
 	{
+		ID:         "DNSA-MX-005",
+		Check:      "mx",
+		Title:      "All mail exchangers operated by a single provider",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceMedium,
+		Description: "Every published mail exchanger sits under one registrable domain, so the whole " +
+			"inbound mail path depends on one operator regardless of how many hosts and preference " +
+			"values are listed. An outage there defers all inbound mail; a compromise there exposes " +
+			"all of it. A single reputable mail provider is the normal arrangement, so this is a " +
+			"resilience observation rather than a defect.",
+		Remediation: "Where inbound mail availability justifies it, add a secondary exchanger operated " +
+			"independently, at a higher preference value, and confirm it queues rather than rejects " +
+			"when the primary is unavailable.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc5321#section-5.1"},
+		Tags:       []string{TagResilience, TagTransport},
+	},
+	{
 		ID:         "DNSA-CAA-001",
 		Check:      "caa",
 		Title:      "No CAA record at the domain or any ancestor",
@@ -735,6 +752,588 @@ var catalogue = index([]Entry{
 			"HTTPS location in the `a=` tag.",
 		References: []string{"https://datatracker.ietf.org/doc/draft-brand-indicators-for-message-identification/"},
 		Tags:       []string{TagEmailAuth},
+	},
+
+	// ------------------------------------------------------------- DNSSEC ---
+	{
+		ID:         "DNSA-DNSSEC-001",
+		Check:      "dnssec",
+		Title:      "DNSSEC is not enabled",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "The zone publishes neither DNSKEY records nor a DS record at its parent, so " +
+			"its DNS answers carry no cryptographic authentication. A resolver has no way to detect " +
+			"forged answers, leaving the domain exposed to cache poisoning and on-path DNS " +
+			"manipulation — which in turn undermines every control that depends on DNS, including " +
+			"certificate issuance and mail routing.",
+		Remediation: "Enable DNSSEC signing at your DNS provider and publish the resulting DS record " +
+			"through your registrar. Most managed providers now do both in one step; verify " +
+			"afterwards that the DS is visible at the parent.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc4033",
+			"https://www.rfc-editor.org/rfc/rfc9364",
+		},
+		Tags: []string{TagNIST80081, TagResilience},
+	},
+	{
+		ID:         "DNSA-DNSSEC-002",
+		Check:      "dnssec",
+		Title:      "Zone is signed but has no DS record at the parent",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "DNSKEY records are published but the parent zone holds no DS record, so the " +
+			"chain of trust is never established. This is an island of trust: the signatures exist " +
+			"and cost real operational effort, yet no validating resolver on the internet uses them. " +
+			"The domain has the burden of DNSSEC with none of the protection, and the failure is " +
+			"invisible to anyone checking only that signing is switched on.",
+		Remediation: "Publish the DS record for the key-signing key through your registrar so the " +
+			"parent zone delegates trust to it. Confirm with `dig DS <domain>` that the parent " +
+			"returns the record before considering DNSSEC deployed.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4033#section-2"},
+		Tags:       []string{TagNIST80081, TagResilience},
+	},
+	{
+		ID:         "DNSA-DNSSEC-003",
+		Check:      "dnssec",
+		Title:      "DS record does not match any published DNSKEY",
+		Severity:   SeverityCritical,
+		Confidence: ConfidenceHigh,
+		Description: "The parent zone delegates trust to a key the zone does not publish, so the " +
+			"chain of trust is broken. Validating resolvers — which now serve a substantial share " +
+			"of users — return SERVFAIL for every name in the zone. This is not a weakness but an " +
+			"outage: the domain is unreachable for those users, while resolving perfectly for " +
+			"everyone else, so it often goes undiagnosed for a long time.",
+		Remediation: "Restore the DNSKEY the DS refers to, or update the DS at the registrar to " +
+			"match the current key-signing key. When rolling keys, publish the new DS and allow it " +
+			"to propagate before withdrawing the old key.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4035#section-5"},
+		Tags:       []string{TagNIST80081, TagResilience},
+	},
+	{
+		ID:         "DNSA-DNSSEC-004",
+		Check:      "dnssec",
+		Title:      "Weak DNSSEC signing algorithm or key size",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "The zone signs with an algorithm RFC 8624 no longer recommends, or with an " +
+			"RSA key shorter than 2048 bits. SHA-1 based algorithms (5 and 7) are the common case " +
+			"and the most serious: practical chosen-prefix collisions mean the signatures do not " +
+			"deliver the assurance the zone operator believes they do.",
+		Remediation: "Roll to ECDSAP256SHA256 (algorithm 13), which is widely supported and " +
+			"produces far smaller responses than RSA, or to RSASHA256 with a key of at least 2048 " +
+			"bits. Publish the matching DS before retiring the old key.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc8624#section-3.1"},
+		Tags:       []string{TagNIST80081, TagPKI},
+	},
+	{
+		ID:         "DNSA-DNSSEC-005",
+		Check:      "dnssec",
+		Title:      "DNSSEC signature expires within seven days",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "An RRSIG expires in less than seven days. Signature expiry is a hard cliff " +
+			"rather than a degradation: on the expiry date validating resolvers stop resolving the " +
+			"zone entirely. If the resigning process has stalled, this is the only warning that " +
+			"will be given.",
+		Remediation: "Confirm that automatic resigning is running and that the signer can reach " +
+			"the zone. Resign now, and monitor RRSIG expiry with an alert well ahead of the " +
+			"validity window.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4034#section-3.1.5"},
+		Tags:       []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-DNSSEC-006",
+		Check:      "dnssec",
+		Title:      "DNSSEC signature has expired",
+		Severity:   SeverityCritical,
+		Confidence: ConfidenceHigh,
+		Description: "An RRSIG's validity period has passed. Validating resolvers reject the " +
+			"signed data outright and return SERVFAIL, so the affected names are already " +
+			"unresolvable for every user behind a validating resolver.",
+		Remediation: "Resign the zone immediately and restore the automated resigning that should " +
+			"have prevented this. Afterwards, add expiry monitoring: an expired signature is an " +
+			"outage that gives no warning unless it is watched for.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4035#section-5.3.1"},
+		Tags:       []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-DNSSEC-007",
+		Check:      "dnssec",
+		Title:      "Zone uses NSEC, permitting zone walking",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceHigh,
+		Description: "Authenticated denial of existence uses NSEC, whose records chain every name " +
+			"in the zone together. An observer can walk the chain and enumerate the complete " +
+			"contents of the zone, including internal hostnames that were never meant to be " +
+			"discoverable — useful reconnaissance for an attacker mapping the estate.",
+		Remediation: "Switch to NSEC3 with zero extra iterations and no salt, per RFC 9276. Note " +
+			"that NSEC3 raises the cost of enumeration rather than preventing it, so names that " +
+			"must stay private should not be in a public zone at all.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc5155",
+			"https://www.rfc-editor.org/rfc/rfc9276#section-3.1",
+		},
+		Tags: []string{TagNIST80081},
+	},
+	{
+		ID:         "DNSA-DNSSEC-008",
+		Check:      "dnssec",
+		Title:      "NSEC3 iteration count above current guidance",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceHigh,
+		Description: "The zone's NSEC3 parameters request extra hash iterations. RFC 9276 requires " +
+			"zero: the additional iterations give negligible protection against enumeration while " +
+			"multiplying the work an authoritative server performs per query, which converts the " +
+			"zone's own defence into an amplifier for denial-of-service attacks against it. " +
+			"Resolvers increasingly treat high counts as insecure regardless.",
+		Remediation: "Set the NSEC3 iteration count to 0 and use an empty salt.",
+		References:  []string{"https://www.rfc-editor.org/rfc/rfc9276#section-3.1"},
+		Tags:        []string{TagNIST80081, TagResilience},
+	},
+
+	// ----------------------------------------------------------- WILDCARD ---
+	{
+		ID:         "DNSA-WILD-001",
+		Check:      "wild",
+		Title:      "Wildcard address record present",
+		Severity:   SeverityInfo,
+		Confidence: ConfidenceHigh,
+		Description: "Random, never-registered names under this domain resolve to an address, so the " +
+			"zone answers for every possible label. This is often deliberate, but it removes NXDOMAIN " +
+			"as a signal: a subdomain that was decommissioned still appears to exist, which hides " +
+			"dangling records from monitoring and from this tool's takeover reasoning.",
+		Remediation: "Confirm the wildcard is intended. If it exists only to catch typos, prefer explicit " +
+			"records for the names you serve so that removing a service makes its name stop resolving.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4592"},
+		Tags:       []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-WILD-002",
+		Check:      "wild",
+		Title:      "Wildcard MX record present",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceHigh,
+		Description: "Every possible subdomain of this domain advertises a mail exchanger. Mail addressed " +
+			"to names that were never provisioned — including names an attacker invents for a phishing " +
+			"pretext — is accepted and delivered somewhere, and the domain's mail authentication posture " +
+			"must therefore hold for subdomains nobody has reviewed.",
+		Remediation: "Publish MX records only for the subdomains that receive mail, and publish the null MX " +
+			"of RFC 7505 (`0 .`) for those that do not.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc4592",
+			"https://www.rfc-editor.org/rfc/rfc7505",
+		},
+		Tags: []string{TagEmailAuth, TagResilience},
+	},
+	{
+		ID:         "DNSA-WILD-003",
+		Check:      "wild",
+		Title:      "Wildcard CNAME to a third-party service",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "Every unregistered name under this domain is aliased to infrastructure outside the " +
+			"domain's own tree. Whoever controls that target can serve content, and obtain certificates " +
+			"validated by HTTP, for an unbounded set of names that carry the organisation's brand.",
+		Remediation: "Replace the wildcard with explicit CNAMEs for the names the provider actually serves, " +
+			"and remove them when the service is retired.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc4592"},
+		Tags:       []string{TagResilience, TagPKI},
+	},
+
+	// --------------------------------------------------------- NAMESERVER ---
+	{
+		ID:         "DNSA-NS-001",
+		Check:      "ns",
+		Title:      "Single authoritative nameserver",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "The zone is served by one nameserver, so its loss takes the domain off the " +
+			"internet entirely: no web, no mail, and no ability to publish a fix. RFC 1034 has " +
+			"required redundant servers since 1987.",
+		Remediation: "Publish at least two authoritative nameservers, ideally on separate networks and " +
+			"operated independently of each other.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc1034#section-4.1"},
+		Tags:       []string{TagResilience, TagNIST80081},
+	},
+	{
+		ID:         "DNSA-NS-002",
+		Check:      "ns",
+		Title:      "All nameservers operated by a single provider",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceMedium,
+		Description: "Every authoritative nameserver for the zone sits under one registrable domain, so " +
+			"one operator carries the whole delegation. If that operator suffers an outage, a " +
+			"large-scale attack, a billing lapse or a compromise, the domain leaves the internet with " +
+			"it — and no change can be published in the meantime, because publishing changes is the " +
+			"very thing that has failed. A single reputable provider is the normal and usually " +
+			"correct arrangement, so this is an observation for organisations whose availability " +
+			"requirements justify a second one, not a defect.",
+		Remediation: "Where availability requirements justify the cost and the operational complexity, " +
+			"delegate to a second, independently operated DNS provider and keep both zones in step. " +
+			"Note that DNSSEC across two providers requires either shared keys or a multi-signer " +
+			"arrangement per RFC 8901.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc1034#section-4.1",
+			"https://www.rfc-editor.org/rfc/rfc8901",
+		},
+		Tags: []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-NS-003",
+		Check:      "ns",
+		Title:      "All nameservers within a single /24",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "Every authoritative nameserver resolves into one IPv4 /24. The redundancy is " +
+			"nominal: a single routing failure, subnet outage or filtering decision removes all of " +
+			"them at once, which is the condition redundant nameservers exist to prevent.",
+		Remediation: "Place authoritative nameservers in distinct networks — ideally distinct providers " +
+			"and distinct autonomous systems — so that no single failure removes them all.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc2182#section-3.1"},
+		Tags:       []string{TagResilience, TagNIST80081},
+	},
+	{
+		ID:         "DNSA-NS-004",
+		Check:      "ns",
+		Title:      "Parent and child nameserver sets disagree",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "The nameservers the parent zone delegates to differ from those the zone itself " +
+			"publishes. Resolvers may use either set, so behaviour depends on which they cached: a " +
+			"server named only by the parent still receives queries even after the operator believes " +
+			"they removed it, and one named only by the zone may never be asked at all.",
+		Remediation: "Reconcile the two sets. Update the delegation at the registrar to match the zone's " +
+			"own NS records, and remove servers that are no longer authoritative only after the " +
+			"delegation no longer names them.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc1034#section-4.2.2"},
+		Tags:       []string{TagResilience, TagNIST80081},
+	},
+	{
+		ID:         "DNSA-NS-005",
+		Check:      "ns",
+		Title:      "Lame delegation — nameserver does not answer authoritatively",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "A nameserver named in the delegation does not answer authoritatively for the zone. " +
+			"Resolvers distribute queries across the published set, so a proportion of lookups are " +
+			"delayed or fail outright — an intermittent, hard-to-diagnose outage that gets blamed on " +
+			"almost anything except DNS.",
+		Remediation: "Either configure the server to serve the zone, or remove it from both the zone's NS " +
+			"records and the parent's delegation.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc1912#section-2.8"},
+		Tags:       []string{TagResilience, TagNIST80081},
+	},
+	{
+		ID:         "DNSA-NS-006",
+		Check:      "ns",
+		Title:      "Missing glue for an in-bailiwick nameserver",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "A nameserver whose own name lies inside the zone it serves has no address record in " +
+			"the parent's referral. Resolving it requires querying the zone, which requires resolving " +
+			"it: without glue the delegation is circular and resolution depends on cached data that " +
+			"will eventually expire.",
+		Remediation: "Register glue (host) records for in-bailiwick nameservers with the registrar, or name " +
+			"the nameservers outside the zone they serve.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc1034#section-4.2.1"},
+		Tags:       []string{TagResilience, TagNIST80081},
+	},
+	{
+		ID:         "DNSA-NS-007",
+		Check:      "ns",
+		Title:      "Authoritative nameserver is openly recursive",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "The nameserver resolved a name it is not authoritative for on behalf of an arbitrary " +
+			"client. Open resolvers are the raw material of DNS amplification attacks — a small spoofed " +
+			"query returns a large answer to the victim — and they also expose the server's cache to " +
+			"poisoning.",
+		Remediation: "Separate the roles: authoritative servers should refuse recursion entirely, and " +
+			"recursive resolvers should serve only known clients.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc5358",
+			"https://www.cisa.gov/news-events/alerts/2013/01/17/dns-amplification-attacks",
+		},
+		Tags: []string{TagResilience, TagNIST80081, TagCISControls},
+	},
+	{
+		ID:         "DNSA-NS-008",
+		Check:      "ns",
+		Title:      "SOA serial differs between nameservers",
+		Severity:   SeverityLow,
+		Confidence: ConfidenceMedium,
+		Description: "The authoritative servers returned different SOA serials, so they are serving " +
+			"different versions of the zone. This is normal for a few moments after a change and a " +
+			"symptom of broken replication if it persists — during which a resolver's answer depends " +
+			"on which server it happened to ask.",
+		Remediation: "If the difference persists, check zone transfers between the primary and its " +
+			"secondaries: NOTIFY delivery, transfer ACLs and the SOA refresh and retry timers.",
+		References: []string{"https://www.rfc-editor.org/rfc/rfc1912#section-2.2"},
+		Tags:       []string{TagResilience},
+	},
+
+	// ----------------------------------------------------------- TAKEOVER ---
+	{
+		ID:         "DNSA-TKO-001",
+		Check:      "tko",
+		Title:      "Subdomain takeover: alias to an unclaimed name on a known service",
+		Severity:   SeverityCritical,
+		Confidence: ConfidenceHigh,
+		Description: "The name is aliased to a third-party service, and the target does not exist. On " +
+			"this service an unclaimed name can be registered by anybody, so an attacker can claim it " +
+			"and serve content from a hostname that carries your organisation's brand — collecting " +
+			"session cookies scoped to the parent domain, obtaining a valid certificate, and passing " +
+			"every check a user is taught to perform.",
+		Remediation: "Remove the CNAME record now: deletion is instant and costs nothing, whereas the " +
+			"exposure lasts until somebody claims the name. Reclaim the resource on the provider only " +
+			"if the service is still needed.",
+		References: []string{
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/10-Test_for_Subdomain_Takeover",
+			"https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover",
+		},
+		Tags: []string{TagResilience, TagPKI, TagCISControls},
+	},
+	{
+		ID:         "DNSA-TKO-002",
+		Check:      "tko",
+		Title:      "Alias to a third-party service that reports the name as unclaimed",
+		Severity:   SeverityCritical,
+		Confidence: ConfidenceHigh,
+		Description: "The host is aliased to a third-party service, and that service's own web response " +
+			"says the name is not registered to anybody. This is the service itself confirming the " +
+			"exposure rather than an inference drawn from DNS: whoever registers the name next controls " +
+			"content served from the organisation's domain, and with it any cookie scoped to the parent " +
+			"domain, any OAuth redirect allowing the subdomain, and the ability to obtain a valid " +
+			"certificate for the name.",
+		Remediation: "Remove the CNAME record immediately, or reclaim the name on the provider before " +
+			"anybody else does. Removing the record is the safer order: it closes the exposure even if " +
+			"reclaiming the resource takes time.",
+		References: []string{
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/10-Test_for_Subdomain_Takeover",
+			"https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover",
+		},
+		Tags: []string{TagResilience, TagPKI, TagCISControls},
+	},
+	{
+		ID:         "DNSA-TKO-003",
+		Check:      "tko",
+		Title:      "Alias to a third-party service that DNS alone cannot verify",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceLow,
+		Description: "The name is aliased to a third-party service whose targets always resolve, whether " +
+			"or not the name is still claimed. This is not evidence of a defect — the service is most " +
+			"likely in use — but the one case that matters, an abandoned name on a provider that lets " +
+			"anybody re-register it, is indistinguishable from normal operation without inspecting the " +
+			"HTTP response.",
+		Remediation: "Confirm the service is still yours and still needed, and remove the alias if it is " +
+			"not. Run with HTTP corroboration enabled to resolve the ambiguity automatically.",
+		References: []string{
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/10-Test_for_Subdomain_Takeover",
+		},
+		Tags: []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-TKO-004",
+		Check:      "tko",
+		Title:      "Dangling CNAME to a target that does not exist",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "The name is aliased to a target that returns NXDOMAIN, so the alias is broken. The " +
+			"service is unrecognised, so whether it can be claimed by a third party is unknown — but " +
+			"if the target's domain is ever registered, whoever registers it inherits this name.",
+		Remediation: "Remove the alias if the service is retired. If it is not, find out why the target no " +
+			"longer resolves: an expired registration on the target's own domain would make this " +
+			"immediately exploitable.",
+		References: []string{
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/10-Test_for_Subdomain_Takeover",
+		},
+		Tags: []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-TKO-005",
+		Check:      "tko",
+		Title:      "Delegation to a nameserver whose name does not exist",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "The zone delegates to a nameserver whose own name returns NXDOMAIN. If that name " +
+			"becomes registerable, whoever registers it becomes authoritative for part of this zone: " +
+			"they can answer for any name in it, redirect mail, and obtain certificates by DNS " +
+			"validation. This is takeover of the domain itself rather than of one subdomain.",
+		Remediation: "Remove the nameserver from the zone's NS records and from the parent delegation " +
+			"immediately, and check whether the nameserver's own domain has lapsed.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc1912#section-2.8",
+			"https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover",
+		},
+		Tags: []string{TagResilience, TagPKI, TagNIST80081},
+	},
+
+	// ------------------------------------------------------- ZONE TRANSFER ---
+	{
+		ID:         "DNSA-AXFR-001",
+		Check:      "axfr",
+		Title:      "Zone transfer permitted — the entire zone is disclosed",
+		Severity:   SeverityHigh,
+		Confidence: ConfidenceHigh,
+		Description: "An authoritative nameserver performed a zone transfer for an anonymous client, " +
+			"handing over every record in the zone. That is a complete map of the organisation's " +
+			"internal and external estate: hostnames that were never meant to be discoverable, " +
+			"development and staging systems, management interfaces, and the addresses of each. " +
+			"Reconnaissance that would otherwise take weeks and generate noise becomes a single query.",
+		Remediation: "Restrict AXFR to the secondary servers that need it, by IP address and preferably " +
+			"with TSIG authentication. In BIND set `allow-transfer` to the secondaries only; the " +
+			"equivalent exists in every serious nameserver.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc5936",
+			"https://www.rfc-editor.org/rfc/rfc8945",
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/03-Review_Webserver_Metafiles_for_Information_Leakage",
+		},
+		Tags: []string{TagNIST80081, TagCISControls, TagResilience},
+	},
+	{
+		ID:         "DNSA-AXFR-002",
+		Check:      "axfr",
+		Title:      "Zone transfer partially permitted — zone metadata disclosed",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "A nameserver began a zone transfer for an anonymous client but disclosed only the " +
+			"zone's metadata rather than its contents. The serial number and the primary server's " +
+			"identity are revealed, and the transfer policy is evidently not what it should be — the " +
+			"same misconfiguration may disclose the full zone from another server or after a change.",
+		Remediation: "Restrict AXFR and IXFR to the secondary servers that need them, by IP address and " +
+			"preferably with TSIG authentication, on every authoritative server for the zone.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc5936",
+			"https://www.rfc-editor.org/rfc/rfc8945",
+		},
+		Tags: []string{TagNIST80081, TagResilience},
+	},
+
+	// ------------------------------------------------ NETWORK ATTRIBUTION ---
+	{
+		ID:         "DNSA-NET-001",
+		Check:      "net",
+		Title:      "Host is served from a provider outside the domain's own estate",
+		Severity:   SeverityInfo,
+		Confidence: ConfidenceMedium,
+		Description: "The host resolves into a cloud or CDN provider that hosts none of the domain's " +
+			"apex or mail infrastructure. Using more than one provider is often deliberate and " +
+			"sometimes prudent, so this is an inventory observation rather than a defect. It is " +
+			"reported because it is also how shadow IT, abandoned migrations and marketing systems " +
+			"nobody owns appear in DNS — each of them a name under the organisation's domain whose " +
+			"lifecycle nobody is managing.",
+		Remediation: "Confirm the host is a service the organisation still uses and still owns. If it " +
+			"is not, remove the record: a name pointing at infrastructure nobody manages is the " +
+			"precondition for a subdomain takeover.",
+		References: []string{
+			"https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover",
+		},
+		Tags: []string{TagResilience},
+	},
+	{
+		ID:         "DNSA-NET-002",
+		Check:      "net",
+		Title:      "Public name resolves into private or non-routable address space",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceHigh,
+		Description: "A name published in the public DNS resolves to an address that is not routable on " +
+			"the internet — RFC 1918 private space, carrier-grade NAT space, or link-local. The " +
+			"record discloses part of the organisation's internal addressing plan to anybody who " +
+			"asks, which is useful reconnaissance for an attacker who later gets a foothold, and it " +
+			"does not work for external users, so it is usually a split-horizon configuration that " +
+			"has leaked into the public zone.",
+		Remediation: "Serve internal names from an internal view or a separate internal zone, and remove " +
+			"them from the public zone. If the name must exist publicly, point it at a public address.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc1918",
+			"https://www.rfc-editor.org/rfc/rfc6598",
+			"https://www.rfc-editor.org/rfc/rfc6890",
+		},
+		Tags: []string{TagNIST80081, TagCISControls},
+	},
+	{
+		ID:         "DNSA-NET-003",
+		Check:      "net",
+		Title:      "Host is served from a jurisdiction outside the declared expectation",
+		Severity:   SeverityInfo,
+		Confidence: ConfidenceMedium,
+		Description: "The host resolves into a provider region located in a country the operator did not " +
+			"list as expected. The verdict rests on the provider's own published region-to-location " +
+			"mapping rather than on IP geolocation, so it describes where the region is documented to " +
+			"be, not where a particular packet was answered from. Anycast addresses and edge caches " +
+			"legitimately answer from everywhere.",
+		Remediation: "Confirm the placement is intended. Where data residency is a contractual or " +
+			"regulatory requirement, pin the resource to a permitted region in the provider's " +
+			"configuration rather than relying on the default.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc8499",
+		},
+		Tags: []string{TagResilience},
+	},
+
+	// ------------------------------------------ CERTIFICATE TRANSPARENCY ---
+	{
+		ID:         "DNSA-CT-001",
+		Check:      "ct",
+		Title:      "Certificate issued for a host that no longer resolves",
+		Severity:   SeverityInfo,
+		Confidence: ConfidenceHigh,
+		Description: "A public certificate was issued for this name, but the name no longer exists in " +
+			"DNS. The certificate remains valid and publicly logged until it expires, and the name " +
+			"remains a documented part of the organisation's estate that anybody can find. This is " +
+			"usually a decommissioned service, which is worth confirming: if the record is later " +
+			"restored pointing at infrastructure the organisation no longer controls, the certificate " +
+			"has already told an attacker the name is worth watching.",
+		Remediation: "Confirm the service was retired deliberately. Revoke certificates issued for names " +
+			"that will not return, and make certificate revocation part of the decommissioning " +
+			"procedure rather than something done afterwards.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc6962",
+			"https://certificate.transparency.dev/",
+		},
+		Tags: []string{TagPKI, TagResilience},
+	},
+	{
+		ID:         "DNSA-CT-002",
+		Check:      "ct",
+		Title:      "Internal-looking hostname disclosed in a public certificate",
+		Severity:   SeverityMedium,
+		Confidence: ConfidenceMedium,
+		Description: "A name suggesting internal or non-production use appears in a publicly logged " +
+			"certificate. Certificate Transparency is append-only and public, so the disclosure is " +
+			"permanent and cannot be withdrawn: an attacker mapping the organisation gets the names " +
+			"of its staging systems, management interfaces and internal tooling without sending it a " +
+			"single packet. The judgement rests on a keyword in the hostname, so confirm it before " +
+			"acting — a name containing 'test' may well be a production service.",
+		Remediation: "Where internal systems need certificates, issue them from an internal CA rather " +
+			"than a publicly trusted one, or use a wildcard so individual hostnames are never " +
+			"submitted to the logs. Names already logged cannot be withdrawn; rename the service if " +
+			"the disclosure matters.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc6962",
+			"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/01-Information_Gathering/01-Conduct_Search_Engine_Discovery_Reconnaissance_for_Information_Leakage",
+		},
+		Tags: []string{TagPKI, TagCISControls},
+	},
+	{
+		ID:         "DNSA-CT-003",
+		Check:      "ct",
+		Title:      "Wildcard certificate covering the apex",
+		Severity:   SeverityInfo,
+		Confidence: ConfidenceHigh,
+		Description: "A wildcard certificate covers every name directly under the domain. Wildcards keep " +
+			"individual hostnames out of the public logs, which is a genuine privacy benefit, at the " +
+			"cost of concentrating risk: one private key authenticates every host it covers, so a " +
+			"single compromise is a compromise of all of them, and the certificate cannot be revoked " +
+			"for one host without revoking it for every host.",
+		Remediation: "Confirm the trade-off is deliberate. Where a wildcard key is distributed to several " +
+			"systems, consider per-host certificates for the ones handling sensitive traffic, and " +
+			"keep the wildcard key on as few machines as possible.",
+		References: []string{
+			"https://www.rfc-editor.org/rfc/rfc6125#section-6.4.3",
+			"https://www.rfc-editor.org/rfc/rfc6962",
+		},
+		Tags: []string{TagPKI},
 	},
 })
 

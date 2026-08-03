@@ -65,6 +65,15 @@ type Target struct {
 	// Cache memoises DNS answers for the duration of a run, so that checks
 	// needing the same record do not each pay for it.
 	Cache *Cache
+	// Hosts are additional names under the domain to assess, supplied by the
+	// caller. Checks that examine individual hosts — subdomain takeover — use
+	// them; the rest ignore them. Nothing is ever guessed to fill this list.
+	Hosts []string
+	// ExpectJurisdictions are the ISO 3166-1 alpha-2 countries the operator
+	// declares their infrastructure should be in. Empty means no expectation
+	// was stated, and the jurisdiction rule is then not evaluated: this tool
+	// has no basis for guessing where an organisation intends to be hosted.
+	ExpectJurisdictions []string
 	// NoNetwork disables checks requiring egress beyond DNS.
 	NoNetwork bool
 }

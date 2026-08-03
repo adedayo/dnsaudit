@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	dnsaudit "github.com/adedayo/dnsaudit/pkg"
+	"github.com/adedayo/dnsaudit/pkg/analyse"
 	"github.com/adedayo/dnsaudit/pkg/finding"
 )
 
@@ -31,6 +32,17 @@ type Runner struct {
 	CheckConcurrency int
 	// NoNetwork restricts checks to DNS only.
 	NoNetwork bool
+	// Hosts are additional names to assess within each target, for the checks
+	// that examine individual hosts rather than the zone as a whole. Only
+	// names belonging to the target are used.
+	Hosts []string
+	// Enumerate discovers additional hosts from Certificate Transparency
+	// before the checks run, so that names the operator never listed are
+	// assessed too. It is opt-in because it queries a third party.
+	Enumerate bool
+	// ExpectJurisdictions are the ISO 3166-1 alpha-2 countries the operator
+	// declares their infrastructure should be in.
+	ExpectJurisdictions []string
 	// Progress, when non-nil, is called as each target completes. It is invoked
 	// from multiple goroutines, so implementations must be safe for concurrent
 	// use.
@@ -133,7 +145,29 @@ func (r *Runner) runTarget(ctx context.Context, index int, target string) target
 
 	// One cache per target: records for different domains share nothing, and a
 	// per-target cache keeps memory bounded when assessing a large portfolio.
-	t := Target{Domain: target, Cache: NewCache(), NoNetwork: r.NoNetwork}
+	t := Target{
+		Domain:              target,
+		Cache:               NewCache(),
+		Hosts:               hostsWithin(target, r.Hosts),
+		ExpectJurisdictions: r.ExpectJurisdictions,
+		NoNetwork:           r.NoNetwork,
+	}
+
+	// Certificate Transparency enumeration runs before the checks rather than
+	// as one of them, because its output is an input to the others: the whole
+	// point of discovering a name is that takeover and attribution then assess
+	// it. Doing it inside a check would make the result depend on the order
+	// concurrent checks happened to finish in.
+	//
+	// A failure here is not fatal. The audit proceeds with the hosts the
+	// operator supplied, which is exactly what would have happened without
+	// enumeration, and the ct check reports the failure in its own result
+	// rather than the whole run stopping because a third party was unavailable.
+	if r.Enumerate && !r.NoNetwork {
+		if discovered, err := enumerateCT(ctx, t.Cache, target); err == nil {
+			t.Hosts = dedupeHosts(append(t.Hosts, analyse.CTHostNames(discovered)...))
+		}
+	}
 
 	var (
 		wg  sync.WaitGroup
@@ -166,8 +200,15 @@ func (r *Runner) runTarget(ctx context.Context, index int, target string) target
 				})
 				out.findings = append(out.findings, outcome.Findings...)
 			case err != nil:
+				// The outcome's records are kept even though the check
+				// failed. A check that reports "could not complete" without
+				// showing what it attempted gives a reader no way to tell a
+				// blocked network from a broken tool, and for checks like
+				// AXFR the list of servers tried is the entire justification
+				// for the failure.
 				out.checks = append(out.checks, finding.CheckResult{
 					Check: name, Target: target, State: finding.StateCheckFailed,
+					Records: outcome.Records,
 				})
 				out.errs = append(out.errs, ClassifyError(name, target, err))
 			default:

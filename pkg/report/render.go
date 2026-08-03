@@ -203,6 +203,34 @@ func renderPosture(w io.Writer, result *finding.Result, opts Options) error {
 		fmt.Fprintf(w, "         %s\n",
 			"\u2713 present   \u2717 not found   ! check failed   \u2013 not checked")
 	}
+	return renderWarnings(w, result)
+}
+
+// renderWarnings surfaces records a check marked as warnings.
+//
+// A check can succeed and still have been unable to do its whole job — the
+// provider ranges for one cloud may be unreachable while the rest load. That
+// degradation is visible in structured output, but text is the default and the
+// most common invocation, and "no findings (grade A)" printed over a check that
+// silently lost half its coverage is the most misleading thing this tool could
+// say.
+func renderWarnings(w io.Writer, result *finding.Result) error {
+	var warnings []string
+	seen := map[string]bool{}
+	for _, c := range result.Checks {
+		for _, r := range c.Records {
+			if !strings.HasPrefix(r, "warning:") || seen[r] {
+				continue
+			}
+			seen[r] = true
+			warnings = append(warnings, strings.TrimSpace(strings.TrimPrefix(r, "warning:")))
+		}
+	}
+	for _, warning := range warnings {
+		if _, err := fmt.Fprintf(w, "Warning: %s\n", warning); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

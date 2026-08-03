@@ -24,6 +24,11 @@ var (
 	auditNoNetwork        bool
 	auditProgress         bool
 	auditListChecks       bool
+	auditHosts            []string
+	auditHostsFile        string
+
+	auditEnumerate           bool
+	auditExpectJurisdictions []string
 )
 
 var auditCmd = &cobra.Command{
@@ -75,11 +80,19 @@ assess the domains you target.`,
 			return err
 		}
 
+		hosts, err := collectHosts()
+		if err != nil {
+			return err
+		}
+
 		runner := &audit.Runner{
-			Checks:           checks,
-			Concurrency:      auditConcurrency,
-			CheckConcurrency: auditCheckConcurrency,
-			NoNetwork:        auditNoNetwork,
+			Checks:              checks,
+			Concurrency:         auditConcurrency,
+			CheckConcurrency:    auditCheckConcurrency,
+			NoNetwork:           auditNoNetwork,
+			Hosts:               hosts,
+			Enumerate:           auditEnumerate,
+			ExpectJurisdictions: auditExpectJurisdictions,
 		}
 		// Progress goes to stderr so that redirecting stdout still yields a
 		// clean document, and is suppressed for structured output and when
@@ -99,6 +112,23 @@ assess the domains you target.`,
 		}
 		return emit(result)
 	},
+}
+
+// collectHosts gathers the hostnames to assess for subdomain takeover.
+//
+// Nothing is inferred: only names the operator supplied are examined. Guessing
+// subdomains would be enumeration by brute force, which spec 012 forbids, and
+// would report on hosts the domain never published.
+func collectHosts() ([]string, error) {
+	hosts := append([]string{}, auditHosts...)
+	if auditHostsFile != "" {
+		fromFile, err := readTargets(auditHostsFile)
+		if err != nil {
+			return nil, withExitCode(ExitUsage, err)
+		}
+		hosts = append(hosts, fromFile...)
+	}
+	return hosts, nil
 }
 
 // collectTargets gathers targets from arguments, a file and standard input,
@@ -222,6 +252,16 @@ func init() {
 		"Show progress on stderr when assessing several domains interactively.")
 	f.BoolVar(&auditListChecks, "list-checks", false,
 		"List the available checks and profiles, then exit.")
+	f.StringSliceVar(&auditHosts, "hosts", nil,
+		"Additional hostnames to assess for subdomain takeover, e.g. www.example.com.")
+	f.StringVar(&auditHostsFile, "hosts-file", "",
+		"Read hostnames to assess for subdomain takeover from a file, one per line.")
+	f.BoolVar(&auditEnumerate, "enumerate", false,
+		"Discover additional hostnames from Certificate Transparency logs and assess them too. "+
+			"This queries a third-party log service.")
+	f.StringSliceVar(&auditExpectJurisdictions, "expect-jurisdiction", nil,
+		"ISO 3166-1 alpha-2 country codes infrastructure is expected to be hosted in, e.g. GB,IE. "+
+			"Without this, the jurisdiction rule is not evaluated.")
 
 	rootCmd.AddCommand(auditCmd)
 }

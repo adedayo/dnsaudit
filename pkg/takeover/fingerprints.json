@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "updated": "2026-08-03",
+  "provenance": "Curated by the dnsaudit maintainers from vendor documentation and the publicly documented behaviour of each service. Every entry cites the source that establishes whether an unclaimed name can be claimed by a third party. Community research, in particular the can-i-take-over-xyz project, informed which services were worth investigating; the CNAME suffixes and statuses here were confirmed against vendor documentation rather than copied.",
+  "notes": "status is one of: vulnerable (an unclaimed name can be claimed by anybody), edge-case (claimable only under conditions this tool cannot observe from DNS), not-vulnerable (the service prevents a third party claiming the name). nxdomain records whether a dangling name leaves the CNAME target unresolvable, which is what makes the condition detectable from DNS alone. When nxdomain is false the target always resolves and only an HTTP response body distinguishes a claimed name from an unclaimed one.",
+  "fingerprints": [
+    {
+      "service": "AWS S3",
+      "cname_patterns": [".s3.amazonaws.com", ".s3-website.amazonaws.com", ".s3-website-us-east-1.amazonaws.com", ".s3.dualstack.amazonaws.com"],
+      "nxdomain": true,
+      "http_body": ["NoSuchBucket", "The specified bucket does not exist"],
+      "status": "vulnerable",
+      "reference": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html"
+    },
+    {
+      "service": "GitHub Pages",
+      "cname_patterns": [".github.io"],
+      "nxdomain": false,
+      "http_body": ["There isn't a GitHub Pages site here.", "For root URLs (like http://example.com/) you must provide an index.html file"],
+      "status": "vulnerable",
+      "reference": "https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/verifying-your-custom-domain-for-github-pages"
+    },
+    {
+      "service": "Heroku",
+      "cname_patterns": [".herokuapp.com", ".herokudns.com", ".herokussl.com"],
+      "nxdomain": false,
+      "http_body": ["No such app", "herokucdn.com/error-pages/no-such-app.html"],
+      "status": "vulnerable",
+      "reference": "https://devcenter.heroku.com/articles/custom-domains"
+    },
+    {
+      "service": "Microsoft Azure",
+      "cname_patterns": [".azurewebsites.net", ".cloudapp.net", ".cloudapp.azure.com", ".azure-api.net", ".azureedge.net", ".trafficmanager.net", ".blob.core.windows.net", ".azurecontainer.io"],
+      "nxdomain": true,
+      "http_body": ["404 Web Site not found"],
+      "status": "vulnerable",
+      "reference": "https://learn.microsoft.com/en-us/azure/security/fundamentals/subdomain-takeover"
+    },
+    {
+      "service": "Fastly",
+      "cname_patterns": [".fastly.net", ".fastlylb.net"],
+      "nxdomain": false,
+      "http_body": ["Fastly error: unknown domain"],
+      "status": "edge-case",
+      "reference": "https://docs.fastly.com/en/guides/working-with-domains"
+    },
+    {
+      "service": "Shopify",
+      "cname_patterns": [".myshopify.com"],
+      "nxdomain": false,
+      "http_body": ["Sorry, this shop is currently unavailable.", "Only one step left!"],
+      "status": "edge-case",
+      "reference": "https://help.shopify.com/en/manual/domains/add-a-domain/connecting-domains"
+    },
+    {
+      "service": "Pantheon",
+      "cname_patterns": [".pantheonsite.io", ".pantheon.io"],
+      "nxdomain": false,
+      "http_body": ["The gods are wise", "404 error unknown site!"],
+      "status": "vulnerable",
+      "reference": "https://docs.pantheon.io/guides/domains"
+    },
+    {
+      "service": "Netlify",
+      "cname_patterns": [".netlify.app", ".netlify.com"],
+      "nxdomain": false,
+      "http_body": ["Not Found - Request ID"],
+      "status": "edge-case",
+      "reference": "https://docs.netlify.com/domains-https/custom-domains/"
+    },
+    {
+      "service": "Bitbucket",
+      "cname_patterns": [".bitbucket.io"],
+      "nxdomain": false,
+      "http_body": ["Repository not found"],
+      "status": "vulnerable",
+      "reference": "https://support.atlassian.com/bitbucket-cloud/docs/publishing-a-website-on-bitbucket-cloud/"
+    },
+    {
+      "service": "Zendesk",
+      "cname_patterns": [".zendesk.com"],
+      "nxdomain": false,
+      "http_body": ["Help Center Closed", "this help center no longer exists"],
+      "status": "edge-case",
+      "reference": "https://support.zendesk.com/hc/en-us/articles/4408843597850"
+    },
+    {
+      "service": "Statuspage",
+      "cname_patterns": [".statuspage.io"],
+      "nxdomain": false,
+      "http_body": ["You are being redirected", "Statuspage | Hosted Status Pages"],
+      "status": "edge-case",
+      "reference": "https://support.atlassian.com/statuspage/docs/domain-ownership/"
+    },
+    {
+      "service": "Surge.sh",
+      "cname_patterns": [".surge.sh"],
+      "nxdomain": false,
+      "http_body": ["project not found"],
+      "status": "vulnerable",
+      "reference": "https://surge.sh/help/adding-a-custom-domain"
+    },
+    {
+      "service": "Ghost",
+      "cname_patterns": [".ghost.io"],
+      "nxdomain": false,
+      "http_body": ["The thing you were looking for is no longer here"],
+      "status": "vulnerable",
+      "reference": "https://ghost.org/help/using-a-custom-domain/"
+    },
+    {
+      "service": "Read the Docs",
+      "cname_patterns": [".readthedocs.io", ".readthedocs.org"],
+      "nxdomain": false,
+      "http_body": ["unknown to Read the Docs"],
+      "status": "vulnerable",
+      "reference": "https://docs.readthedocs.io/en/stable/custom_domains.html"
+    },
+    {
+      "service": "Tumblr",
+      "cname_patterns": [".tumblr.com"],
+      "nxdomain": false,
+      "http_body": ["Whatever you were looking for doesn't currently exist at this address"],
+      "status": "vulnerable",
+      "reference": "https://help.tumblr.com/using-a-custom-domain/"
+    },
+    {
+      "service": "Wordpress.com",
+      "cname_patterns": [".wordpress.com"],
+      "nxdomain": false,
+      "http_body": ["Do you want to register"],
+      "status": "edge-case",
+      "reference": "https://wordpress.com/support/domains/map-existing-domain/"
+    },
+    {
+      "service": "Cloudfront",
+      "cname_patterns": [".cloudfront.net"],
+      "nxdomain": false,
+      "http_body": ["ERROR: The request could not be satisfied"],
+      "status": "edge-case",
+      "reference": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/CNAMEs.html"
+    },
+    {
+      "service": "Google Cloud Storage",
+      "cname_patterns": ["c.storage.googleapis.com", ".storage.googleapis.com"],
+      "nxdomain": false,
+      "http_body": ["NoSuchBucket", "The specified bucket does not exist"],
+      "status": "edge-case",
+      "reference": "https://cloud.google.com/storage/docs/hosting-static-website"
+    },
+    {
+      "service": "Vercel",
+      "cname_patterns": [".vercel.app", ".vercel-dns.com", ".now.sh"],
+      "nxdomain": false,
+      "http_body": ["The deployment could not be found on Vercel"],
+      "status": "edge-case",
+      "reference": "https://vercel.com/docs/projects/domains"
+    },
+    {
+      "service": "Webflow",
+      "cname_patterns": [".webflow.io", "proxy.webflow.com", "proxy-ssl.webflow.com"],
+      "nxdomain": false,
+      "http_body": ["The page you are looking for doesn't exist or has been moved"],
+      "status": "edge-case",
+      "reference": "https://university.webflow.com/lesson/connect-a-custom-domain"
+    }
+  ]
+}

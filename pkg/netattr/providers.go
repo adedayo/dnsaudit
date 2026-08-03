@@ -1,0 +1,302 @@
+package netattr
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/netip"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Provider is a cloud or CDN operator whose announced ranges are known.
+type Provider struct {
+	// Name is the operator.
+	Name string
+	// Source is the URL the ranges were published at, retained so a finding
+	// can cite where the attribution came from.
+	Source string
+	// Ranges are the announced prefixes.
+	Ranges []ProviderRange
+}
+
+// ProviderRange is one announced prefix and what is known about where it is.
+type ProviderRange struct {
+	Prefix netip.Prefix
+	// Region is the operator's own region identifier, e.g. "eu-west-1". It is
+	// empty when the operator does not publish one.
+	Region string
+}
+
+// Attribution is what could be established about an address.
+type Attribution struct {
+	// Address is the address looked up.
+	Address netip.Addr
+	// Special is the special-purpose registry entry, when the address is in
+	// one.
+	Special *SpecialRange
+	// Provider is the operator announcing the address, when known.
+	Provider string
+	// Source cites where the provider's ranges came from.
+	Source string
+	// Region is the operator's region identifier, when published.
+	Region string
+	// Jurisdiction is the ISO 3166-1 alpha-2 country the region sits in, when
+	// the mapping is known. Empty means unknown, never "assume home".
+	Jurisdiction string
+	// Prefix is the announced prefix that matched.
+	Prefix netip.Prefix
+}
+
+// Attributed reports whether anything at all was established about the address.
+// An unattributed address is not evidence that the host is self-hosted; it is
+// evidence that this tool does not know, and the rules must treat it that way.
+func (a Attribution) Attributed() bool {
+	return a.Special != nil || a.Provider != ""
+}
+
+// providerSources are the published range files this package understands.
+//
+// Every entry is the operator's own machine-readable publication. Nothing here
+// is transcribed by hand: a prefix list maintained in this repository would be
+// stale within days and would attribute addresses to the wrong operator with
+// the same confidence as a correct answer.
+//
+// Microsoft Azure is absent. Its ranges are published only behind a download
+// page whose URL changes with each weekly revision, with no stable endpoint to
+// fetch. Coverage is therefore incomplete, and the consequence is stated
+// plainly in the rules: an address this package cannot attribute yields no
+// finding at all rather than a claim that it belongs to nobody.
+var providerSources = []struct {
+	name  string
+	url   string
+	parse func([]byte) ([]ProviderRange, error)
+}{
+	{"Amazon Web Services", "https://ip-ranges.amazonaws.com/ip-ranges.json", parseAWS},
+	{"Google Cloud", "https://www.gstatic.com/ipranges/cloud.json", parseGCP},
+	{"Cloudflare", "https://www.cloudflare.com/ips-v4", parsePlainList},
+	{"Cloudflare", "https://www.cloudflare.com/ips-v6", parsePlainList},
+	{"Fastly", "https://api.fastly.com/public-ip-list", parseFastly},
+}
+
+// Set is a loaded collection of provider ranges.
+type Set struct {
+	// Providers are the operators whose ranges loaded successfully.
+	Providers []Provider
+	// Failed names the sources that could not be loaded, so a caller can say
+	// "coverage was incomplete" rather than "not in a cloud".
+	Failed []string
+	// Fetched is when the data was obtained, which is what lets a reader judge
+	// how stale an attribution may be.
+	Fetched time.Time
+}
+
+// Lookup attributes an address.
+//
+// Special-purpose space is checked first and short-circuits: an RFC 1918
+// address cannot also be an operator's announced range, and a provider file
+// that claimed otherwise would be wrong.
+func (s Set) Lookup(addr netip.Addr) Attribution {
+	addr = addr.Unmap()
+	a := Attribution{Address: addr}
+
+	if sr, ok := LookupSpecial(addr); ok {
+		a.Special = &sr
+		return a
+	}
+
+	// The most specific announcement wins. Operators publish overlapping
+	// prefixes — a regional range inside a global aggregate — and taking the
+	// first match would report the aggregate's region for an address the
+	// operator places elsewhere.
+	best := -1
+	for _, p := range s.Providers {
+		for _, r := range p.Ranges {
+			if !r.Prefix.Contains(addr) || r.Prefix.Bits() <= best {
+				continue
+			}
+			best = r.Prefix.Bits()
+			a.Provider, a.Source, a.Region, a.Prefix = p.Name, p.Source, r.Region, r.Prefix
+			a.Jurisdiction = JurisdictionOf(r.Region)
+		}
+	}
+	return a
+}
+
+// Complete reports whether every source loaded. When false, an address with no
+// provider match may simply belong to an operator whose ranges are missing.
+func (s Set) Complete() bool { return len(s.Failed) == 0 }
+
+var (
+	setMu     sync.Mutex
+	cachedSet *Set
+)
+
+// Load returns the provider ranges, fetching and caching them as needed.
+//
+// The result is memoised for the process and cached on disk between runs, so a
+// portfolio audit of a hundred domains pays for the download once. Repeatedly
+// pulling several megabytes from four operators would be exactly the
+// inconsiderate behaviour spec 012 requires this tool to avoid.
+func Load(ctx context.Context) (Set, error) {
+	setMu.Lock()
+	defer setMu.Unlock()
+	if cachedSet != nil {
+		return *cachedSet, nil
+	}
+
+	set := Set{Fetched: time.Now().UTC()}
+	byName := map[string]*Provider{}
+
+	for _, src := range providerSources {
+		data, err := fetchCached(ctx, src.url)
+		if err != nil {
+			set.Failed = append(set.Failed, src.name+" ("+src.url+")")
+			continue
+		}
+		ranges, err := src.parse(data)
+		if err != nil {
+			set.Failed = append(set.Failed, src.name+" ("+src.url+"): "+err.Error())
+			continue
+		}
+
+		p, ok := byName[src.name]
+		if !ok {
+			p = &Provider{Name: src.name, Source: src.url}
+			byName[src.name] = p
+		}
+		p.Ranges = append(p.Ranges, ranges...)
+	}
+
+	names := make([]string, 0, len(byName))
+	for name := range byName {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		set.Providers = append(set.Providers, *byName[name])
+	}
+
+	if len(set.Providers) == 0 {
+		return set, fmt.Errorf("error: no cloud provider ranges could be retrieved (%s)",
+			strings.Join(set.Failed, "; "))
+	}
+
+	cachedSet = &set
+	return set, nil
+}
+
+// Reset clears the in-process cache. Tests use it; nothing else should.
+func Reset() {
+	setMu.Lock()
+	defer setMu.Unlock()
+	cachedSet = nil
+}
+
+// parseAWS reads the AWS ip-ranges.json publication.
+func parseAWS(data []byte) ([]ProviderRange, error) {
+	var doc struct {
+		Prefixes []struct {
+			IPPrefix string `json:"ip_prefix"`
+			Region   string `json:"region"`
+		} `json:"prefixes"`
+		IPv6Prefixes []struct {
+			IPv6Prefix string `json:"ipv6_prefix"`
+			Region     string `json:"region"`
+		} `json:"ipv6_prefixes"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, err
+	}
+
+	ranges := make([]ProviderRange, 0, len(doc.Prefixes)+len(doc.IPv6Prefixes))
+	for _, p := range doc.Prefixes {
+		if pfx, err := netip.ParsePrefix(p.IPPrefix); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx, Region: p.Region})
+		}
+	}
+	for _, p := range doc.IPv6Prefixes {
+		if pfx, err := netip.ParsePrefix(p.IPv6Prefix); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx, Region: p.Region})
+		}
+	}
+	return requireRanges(ranges)
+}
+
+// parseGCP reads the Google Cloud cloud.json publication.
+func parseGCP(data []byte) ([]ProviderRange, error) {
+	var doc struct {
+		Prefixes []struct {
+			IPv4Prefix string `json:"ipv4Prefix"`
+			IPv6Prefix string `json:"ipv6Prefix"`
+			Scope      string `json:"scope"`
+		} `json:"prefixes"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, err
+	}
+
+	ranges := make([]ProviderRange, 0, len(doc.Prefixes))
+	for _, p := range doc.Prefixes {
+		raw := p.IPv4Prefix
+		if raw == "" {
+			raw = p.IPv6Prefix
+		}
+		if pfx, err := netip.ParsePrefix(raw); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx, Region: p.Scope})
+		}
+	}
+	return requireRanges(ranges)
+}
+
+// parseFastly reads the Fastly public IP list.
+func parseFastly(data []byte) ([]ProviderRange, error) {
+	var doc struct {
+		Addresses     []string `json:"addresses"`
+		IPv6Addresses []string `json:"ipv6_addresses"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, err
+	}
+
+	ranges := make([]ProviderRange, 0, len(doc.Addresses)+len(doc.IPv6Addresses))
+	for _, raw := range append(doc.Addresses, doc.IPv6Addresses...) {
+		if pfx, err := netip.ParsePrefix(raw); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx})
+		}
+	}
+	return requireRanges(ranges)
+}
+
+// parsePlainList reads a newline-separated prefix list.
+func parsePlainList(data []byte) ([]ProviderRange, error) {
+	var ranges []ProviderRange
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if pfx, err := netip.ParsePrefix(line); err == nil {
+			ranges = append(ranges, ProviderRange{Prefix: pfx})
+		}
+	}
+	return requireRanges(ranges)
+}
+
+// requireRanges rejects a publication that parsed to nothing.
+//
+// An operator changing its file format would otherwise leave this package
+// silently attributing none of its addresses, which reads identically to that
+// operator hosting nothing — a false negative with no symptom.
+func requireRanges(ranges []ProviderRange) ([]ProviderRange, error) {
+	if len(ranges) == 0 {
+		return nil, fmt.Errorf("the published range file contained no usable prefixes")
+	}
+	return ranges, nil
+}
+
+// httpClient is used for every range fetch.
+var httpClient = &http.Client{Timeout: 30 * time.Second}

@@ -29,7 +29,12 @@ const udpBufferSize = 1232
 // exchangeOnce sends the query to a single resolver, retrying over TCP when the
 // UDP response is truncated. The attempt is bounded both by the supplied
 // timeout and by the caller's context.
-func exchangeOnce(ctx context.Context, addr string, m *dns.Msg, timeout time.Duration) (*dns.Msg, error) {
+//
+// When dnssec is set the EDNS0 DO bit is requested, so that the resolver
+// returns RRSIG records and sets the AD bit on validated answers. Without it a
+// DNSSEC query sees only the records the zone publishes, never the signatures
+// that determine whether they can actually be validated.
+func exchangeOnce(ctx context.Context, addr string, m *dns.Msg, timeout time.Duration, dnssec bool) (*dns.Msg, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -47,7 +52,7 @@ func exchangeOnce(ctx context.Context, addr string, m *dns.Msg, timeout time.Dur
 	// include tree is exactly the case worth auditing. The query is sent on a
 	// copy so that a retry over TCP re-sends the caller's original message.
 	edns := m.Copy()
-	edns.SetEdns0(udpBufferSize, false)
+	edns.SetEdns0(udpBufferSize, dnssec)
 
 	resp, _, err := client.ExchangeContext(ctx, edns, addr)
 
@@ -56,9 +61,17 @@ func exchangeOnce(ctx context.Context, addr string, m *dns.Msg, timeout time.Dur
 	// to unpack before the flag is ever read, and reporting that as an
 	// unreachable resolver would hide a perfectly healthy domain behind a
 	// transport detail.
+	//
+	// DNSKEY and RRSIG answers routinely exceed the UDP buffer, so the retry
+	// must carry the same EDNS0 options: re-sending the bare question would
+	// drop the DO bit and silently return an unsigned view of a signed zone.
 	if err != nil || resp.Truncated {
+		retry := m
+		if dnssec {
+			retry = edns
+		}
 		tcp := &dns.Client{Net: "tcp", Timeout: timeout}
-		if tcpResp, _, tcpErr := tcp.ExchangeContext(ctx, m, addr); tcpErr == nil {
+		if tcpResp, _, tcpErr := tcp.ExchangeContext(ctx, retry, addr); tcpErr == nil {
 			return tcpResp, nil
 		}
 		if err != nil {
@@ -76,6 +89,17 @@ func exchangeOnce(ctx context.Context, addr string, m *dns.Msg, timeout time.Dur
 // full lookup budget (TotalTimeout, or the context deadline if sooner) rather
 // than the shorter per-resolver QueryTimeout.
 func ExchangeWithServer(ctx context.Context, server, name string, qtype uint16) (*dns.Msg, error) {
+	return exchangeWithServer(ctx, server, name, qtype, false)
+}
+
+// ExchangeDNSSECWithServer behaves like ExchangeWithServer but requests DNSSEC
+// records (the EDNS0 DO bit), so RRSIGs are returned and the AD bit is
+// meaningful.
+func ExchangeDNSSECWithServer(ctx context.Context, server, name string, qtype uint16) (*dns.Msg, error) {
+	return exchangeWithServer(ctx, server, name, qtype, true)
+}
+
+func exchangeWithServer(ctx context.Context, server, name string, qtype uint16, dnssec bool) (*dns.Msg, error) {
 	addr, err := normaliseServer(server)
 	if err != nil {
 		return nil, err
@@ -84,7 +108,7 @@ func ExchangeWithServer(ctx context.Context, server, name string, qtype uint16) 
 	if err != nil {
 		return nil, err
 	}
-	resp, err := exchangeOnce(ctx, addr, question(name, qtype), remaining)
+	resp, err := exchangeOnce(ctx, addr, question(name, qtype), remaining, dnssec)
 	if err != nil {
 		return nil, fmt.Errorf("error: dns query failed: %w", err)
 	}
@@ -114,6 +138,18 @@ func ExchangeRaw(ctx context.Context, name string, qtype uint16) (*dns.Msg, erro
 // their own resolver, whether through split-horizon DNS, filtering or an
 // outright hijack.
 func ExchangeRawFrom(ctx context.Context, name string, qtype uint16) (*dns.Msg, string, error) {
+	return exchangeRawFrom(ctx, name, qtype, false)
+}
+
+// ExchangeDNSSECRawFrom behaves like ExchangeRawFrom but requests DNSSEC
+// records. The response code is left to the caller to interpret, which matters
+// here because a deliberately non-existent name is queried to obtain the
+// NSEC/NSEC3 records that prove denial of existence.
+func ExchangeDNSSECRawFrom(ctx context.Context, name string, qtype uint16) (*dns.Msg, string, error) {
+	return exchangeRawFrom(ctx, name, qtype, true)
+}
+
+func exchangeRawFrom(ctx context.Context, name string, qtype uint16, dnssec bool) (*dns.Msg, string, error) {
 	remaining, err := budget(ctx)
 	if err != nil {
 		return nil, "", err
@@ -135,7 +171,7 @@ func ExchangeRawFrom(ctx context.Context, name string, qtype uint16) (*dns.Msg, 
 			}
 			break
 		}
-		resp, err := exchangeOnce(ctx, server, m, attemptTimeout(remaining))
+		resp, err := exchangeOnce(ctx, server, m, attemptTimeout(remaining), dnssec)
 		if err == nil {
 			return resp, server, nil
 		}
