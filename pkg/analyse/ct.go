@@ -59,12 +59,17 @@ var internalKeywords = map[string]bool{
 }
 
 // CertificateTransparency evaluates what public certificate issuance reveals.
+//
+// The per-name rules report once per group rather than once per name. A large
+// estate can put hundreds of names in the logs, and a reader who is shown one
+// finding per name is being charged hundreds of rows for a handful of facts:
+// once you know that ".test." is the convention, the forty-third hostname
+// changes no decision. The names are all kept as evidence, so nothing is lost.
 func CertificateTransparency(o Origin, obs CTObservation) []finding.Finding {
 	var findings []finding.Finding
 
-	for _, h := range obs.Hosts {
-		findings = append(findings, assessCTHost(o, h)...)
-	}
+	findings = append(findings, vanishedNameFindings(o, obs.Hosts)...)
+	findings = append(findings, internalNameFindings(o, obs.Hosts)...)
 
 	for _, name := range obs.WildcardNames {
 		// A wildcard covering the apex is worth knowing about because its
@@ -83,37 +88,101 @@ func CertificateTransparency(o Origin, obs CTObservation) []finding.Finding {
 	return findings
 }
 
-// assessCTHost applies the per-name rules.
-func assessCTHost(o Origin, h CTHost) []finding.Finding {
-	evidence := []finding.Evidence{
-		finding.ComputedEvidence("ct.host", h.Host),
+// vanishedNameFindings reports names that were certified and have since been
+// withdrawn from the zone, as a single finding covering all of them.
+func vanishedNameFindings(o Origin, hosts []CTHost) []finding.Finding {
+	var vanished []CTHost
+	for _, h := range hosts {
+		// Only a definitive NXDOMAIN counts. A query that failed says nothing,
+		// and a name that resolves is simply in service.
+		if h.NXDOMAIN && !h.Resolves {
+			vanished = append(vanished, h)
+		}
 	}
-	if h.Issuer != "" {
-		evidence = append(evidence, finding.ComputedEvidence("ct.issuer", h.Issuer))
-	}
-	if h.Expiry != "" {
-		evidence = append(evidence, finding.ComputedEvidence("ct.expiry", h.Expiry))
-	}
-
-	var findings []finding.Finding
-
-	// Only a definitive NXDOMAIN counts. A query that failed says nothing, and
-	// a name that resolves is simply in service.
-	if h.NXDOMAIN && !h.Resolves {
-		findings = append(findings, finding.New("DNSA-CT-001", o.Target, evidence...))
+	if len(vanished) == 0 {
+		return nil
 	}
 
-	if label := internalLabel(h.Host); label != "" {
-		findings = append(findings, finding.New("DNSA-CT-002", o.Target,
-			append(evidence, finding.ComputedEvidence("ct.keyword", label))...).
+	evidence := append([]finding.Evidence{
+		finding.ComputedEvidence("ct.host.count", strconv.Itoa(len(vanished))),
+	}, hostEvidence(vanished)...)
+
+	return []finding.Finding{finding.New("DNSA-CT-001", o.Target, evidence...)}
+}
+
+// internalNameFindings reports internal-looking names, grouped by the keyword
+// that gave them away.
+//
+// Grouping is by keyword because the keyword is the disclosure: a zone with
+// forty ".test." names has leaked one naming convention, not forty secrets, and
+// the operator's decision is about the convention.
+func internalNameFindings(o Origin, hosts []CTHost) []finding.Finding {
+	byKeyword := make(map[string][]CTHost)
+	for _, h := range hosts {
+		if label := internalLabel(h.Host); label != "" {
+			byKeyword[keywordRoot(label)] = append(byKeyword[keywordRoot(label)], h)
+		}
+	}
+	if len(byKeyword) == 0 {
+		return nil
+	}
+
+	keywords := make([]string, 0, len(byKeyword))
+	for keyword := range byKeyword {
+		keywords = append(keywords, keyword)
+	}
+	sort.Strings(keywords)
+
+	findings := make([]finding.Finding, 0, len(keywords))
+	for _, keyword := range keywords {
+		matched := byKeyword[keyword]
+		evidence := append([]finding.Evidence{
+			finding.ComputedEvidence("ct.keyword", keyword),
+			finding.ComputedEvidence("ct.host.count", strconv.Itoa(len(matched))),
+		}, hostEvidence(matched)...)
+
+		findings = append(findings, finding.New("DNSA-CT-002", o.Target, evidence...).
 			// A keyword heuristic suggests; it does not establish. The spec
 			// requires this rule to be reported at medium confidence, and the
 			// reason is that "test.example.com" may well be a production
 			// service for testing somebody else's code.
 			WithConfidence(finding.ConfidenceMedium))
 	}
-
 	return findings
+}
+
+// hostEvidence renders names as evidence, in a stable order so that two runs
+// over the same zone produce the same report.
+func hostEvidence(hosts []CTHost) []finding.Evidence {
+	sorted := append([]CTHost(nil), hosts...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Host < sorted[j].Host })
+
+	evidence := make([]finding.Evidence, 0, len(sorted))
+	for _, h := range sorted {
+		detail := h.Host
+		switch {
+		case h.Issuer != "" && h.Expiry != "":
+			detail += " (" + h.Issuer + ", expires " + h.Expiry + ")"
+		case h.Issuer != "":
+			detail += " (" + h.Issuer + ")"
+		case h.Expiry != "":
+			detail += " (expires " + h.Expiry + ")"
+		}
+		evidence = append(evidence, finding.ComputedEvidence("ct.host", detail))
+	}
+	return evidence
+}
+
+// keywordRoot reduces a matched label to the keyword it matched, so that dev1
+// and dev2 are counted as one convention rather than two.
+func keywordRoot(label string) string {
+	if internalKeywords[label] {
+		return label
+	}
+	if trimmed := strings.TrimRight(label, "0123456789"); internalKeywords[trimmed] {
+		return trimmed
+	}
+	return label
 }
 
 // internalLabel returns the first label of the name that suggests internal use.

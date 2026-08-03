@@ -110,12 +110,18 @@ into an attack-surface inventory.
 
 | ID | Condition | Severity |
 |---|---|---|
-| `DNSA-CT-001` | Certificate issued for a host that no longer resolves | Info |
-| `DNSA-CT-002` | Internal-looking hostname disclosed in a public certificate | Medium |
+| `DNSA-CT-001` | Certificates issued for hosts that no longer resolve | Info |
+| `DNSA-CT-002` | Internal-looking hostnames disclosed in public certificates | Medium |
 | `DNSA-CT-003` | Wildcard certificate covering the apex | Info |
 
 `DNSA-CT-002` uses a conservative keyword heuristic (`vpn`, `internal`, `dev`,
 `staging`, `jira`, `admin`, …) and MUST be reported at `Medium` confidence.
+
+`DNSA-CT-001` and `DNSA-CT-002` MUST report once per group rather than once per
+name — all vanished names together, and internal-looking names grouped by the
+keyword that matched — with every name retained as evidence. A large estate can
+put hundreds of names in the logs, and one finding per name would bury the rest
+of the report.
 
 Caching to `~/.cache/dnsaudit` with a documented TTL is required so repeat runs
 do not hammer public services.

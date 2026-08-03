@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/adedayo/dnsaudit/pkg/finding"
 )
 
 func ctIDs(obs CTObservation) []string {
@@ -116,6 +118,98 @@ func TestCTIgnoresWildcardsBelowTheApex(t *testing.T) {
 		WildcardNames: []string{"*.dev.example.com"},
 	}
 	assert.Empty(t, ctIDs(obs))
+}
+
+// A large estate can put hundreds of names in the logs. Reporting one finding
+// per name charges the reader hundreds of rows for a handful of facts, so the
+// rule groups by the keyword that gave the names away.
+func TestCTGroupsInternalNamesByKeyword(t *testing.T) {
+	obs := CTObservation{
+		Domain: "example.com",
+		Hosts: []CTHost{
+			{Host: "a.test.example.com", Resolves: true},
+			{Host: "b.test.example.com", Resolves: true},
+			{Host: "c.test.example.com", Resolves: true},
+			{Host: "one.stage.example.com", Resolves: true},
+			{Host: "www.example.com", Resolves: true},
+		},
+	}
+
+	findings := CertificateTransparency(Origin{Target: "example.com"}, obs)
+	require.Len(t, findings, 2, "four internal names spanning two conventions are two findings")
+
+	keywords := []string{evidenceValue(t, findings[0], "ct.keyword"), evidenceValue(t, findings[1], "ct.keyword")}
+	assert.ElementsMatch(t, []string{"stage", "test"}, keywords)
+}
+
+// Grouping must not lose the names: the operator still has to know which hosts
+// are exposed, so every one of them stays in the evidence.
+func TestCTGroupingKeepsEveryHostAsEvidence(t *testing.T) {
+	obs := CTObservation{
+		Domain: "example.com",
+		Hosts: []CTHost{
+			{Host: "b.test.example.com", Resolves: true},
+			{Host: "a.test.example.com", Resolves: true},
+		},
+	}
+
+	findings := CertificateTransparency(Origin{Target: "example.com"}, obs)
+	require.Len(t, findings, 1)
+
+	assert.Equal(t, "2", evidenceValue(t, findings[0], "ct.host.count"))
+	var hosts []string
+	for _, e := range findings[0].Evidence {
+		if e.Name == "ct.host" {
+			hosts = append(hosts, e.Value)
+		}
+	}
+	// Sorted, so two runs over the same zone produce the same report.
+	assert.Equal(t, []string{"a.test.example.com", "b.test.example.com"}, hosts)
+}
+
+// dev1 and dev2 are one convention, not two.
+func TestCTGroupsNumberedVariantsUnderOneKeyword(t *testing.T) {
+	obs := CTObservation{
+		Domain: "example.com",
+		Hosts: []CTHost{
+			{Host: "dev1.example.com", Resolves: true},
+			{Host: "dev2.example.com", Resolves: true},
+		},
+	}
+
+	findings := CertificateTransparency(Origin{Target: "example.com"}, obs)
+	require.Len(t, findings, 1)
+	assert.Equal(t, "dev", evidenceValue(t, findings[0], "ct.keyword"))
+}
+
+// Vanished names group too, and for the same reason.
+func TestCTGroupsVanishedNames(t *testing.T) {
+	obs := CTObservation{
+		Domain: "example.com",
+		Hosts: []CTHost{
+			{Host: "old.example.com", NXDOMAIN: true, Issuer: "CN=Test CA", Expiry: "2026-12-01"},
+			{Host: "older.example.com", NXDOMAIN: true},
+		},
+	}
+
+	findings := CertificateTransparency(Origin{Target: "example.com"}, obs)
+	require.Len(t, findings, 1)
+	assert.Equal(t, "DNSA-CT-001", findings[0].ID)
+	assert.Equal(t, "2", evidenceValue(t, findings[0], "ct.host.count"))
+	// The issuer and expiry travel with the name they belong to.
+	assert.Equal(t, "old.example.com (CN=Test CA, expires 2026-12-01)",
+		evidenceValue(t, findings[0], "ct.host"))
+}
+
+func evidenceValue(t *testing.T, f finding.Finding, name string) string {
+	t.Helper()
+	for _, e := range f.Evidence {
+		if e.Name == name {
+			return e.Value
+		}
+	}
+	t.Fatalf("no %s evidence in %s", name, f.ID)
+	return ""
 }
 
 func TestCTRecordsShowTheInventory(t *testing.T) {

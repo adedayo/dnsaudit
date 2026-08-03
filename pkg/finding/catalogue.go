@@ -1275,15 +1275,16 @@ var catalogue = index([]Entry{
 	{
 		ID:         "DNSA-CT-001",
 		Check:      "ct",
-		Title:      "Certificate issued for a host that no longer resolves",
+		Title:      "Certificates issued for hosts that no longer resolve",
 		Severity:   SeverityInfo,
 		Confidence: ConfidenceHigh,
-		Description: "A public certificate was issued for this name, but the name no longer exists in " +
-			"DNS. The certificate remains valid and publicly logged until it expires, and the name " +
+		Description: "Public certificates were issued for names in this zone that no longer exist in " +
+			"DNS. Each certificate remains valid and publicly logged until it expires, and each name " +
 			"remains a documented part of the organisation's estate that anybody can find. This is " +
-			"usually a decommissioned service, which is worth confirming: if the record is later " +
+			"usually a decommissioned service, which is worth confirming: if a record is later " +
 			"restored pointing at infrastructure the organisation no longer controls, the certificate " +
-			"has already told an attacker the name is worth watching.",
+			"has already told an attacker the name is worth watching. The affected names are listed " +
+			"in the evidence.",
 		Remediation: "Confirm the service was retired deliberately. Revoke certificates issued for names " +
 			"that will not return, and make certificate revocation part of the decommissioning " +
 			"procedure rather than something done afterwards.",
@@ -1296,15 +1297,17 @@ var catalogue = index([]Entry{
 	{
 		ID:         "DNSA-CT-002",
 		Check:      "ct",
-		Title:      "Internal-looking hostname disclosed in a public certificate",
+		Title:      "Internal-looking hostnames disclosed in public certificates",
 		Severity:   SeverityMedium,
 		Confidence: ConfidenceMedium,
-		Description: "A name suggesting internal or non-production use appears in a publicly logged " +
-			"certificate. Certificate Transparency is append-only and public, so the disclosure is " +
+		Description: "Names suggesting internal or non-production use appear in publicly logged " +
+			"certificates. Certificate Transparency is append-only and public, so the disclosure is " +
 			"permanent and cannot be withdrawn: an attacker mapping the organisation gets the names " +
 			"of its staging systems, management interfaces and internal tooling without sending it a " +
-			"single packet. The judgement rests on a keyword in the hostname, so confirm it before " +
-			"acting — a name containing 'test' may well be a production service.",
+			"single packet. The names are grouped by the keyword that gave them away, because what " +
+			"leaks is the naming convention rather than any single host, and all of them are listed " +
+			"in the evidence. The judgement rests on that keyword, so confirm it before acting — a " +
+			"name containing 'test' may well be a production service.",
 		Remediation: "Where internal systems need certificates, issue them from an internal CA rather " +
 			"than a publicly trusted one, or use a wildcard so individual hostnames are never " +
 			"submitted to the logs. Names already logged cannot be withdrawn; rename the service if " +

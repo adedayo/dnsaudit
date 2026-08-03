@@ -334,6 +334,15 @@ matching would fire "dev" on `developer.example.com`, and an organisation called
 Test Ltd is not leaking an internal hostname by owning `test.com`. A keyword
 heuristic suggests; it does not establish.
 
+Both per-name CT rules report once per group rather than once per name. The
+first run against `bbc.co.uk` produced 83 findings, 60 of them `DNSA-CT-002`,
+and every one was a true positive — the keyword list was doing its job. The
+defect was that 60 rows carried three facts: the zone uses `.test.`, `.stage.`
+and `admin.` conventions. Once a reader knows the convention, the forty-third
+hostname changes no decision. Grouping by keyword takes the same audit to 6
+findings with all 60 names kept as evidence. Precision and volume are separate
+problems, and a report nobody finishes is not made better by being correct.
+
 #### Zone transfer
 Every authoritative server is tried, not merely the first: a zone is only as
 protected as its least well configured server, and the common failure is one
