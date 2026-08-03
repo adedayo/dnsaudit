@@ -57,7 +57,7 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "vantage",
-	Short: "DNS security auditing tool for analysing your external attack surface.",
+	Short: "Audit the attack surface an organisation exposes.",
 	// Long is assembled in Execute, because the banner carries the version and
 	// that is only resolved at run time.
 	SilenceUsage:  true,
@@ -71,10 +71,19 @@ func Execute() {
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 	rootCmd.Long = banner() + `
 
-vantage analyses DNS records to identify security posture issues
-across your domains. It helps security teams and CISOs understand their
-external attack surface by auditing records such as SPF, DKIM, DMARC, DANE,
-CAA, DNSSEC, PTR, DNSBL listings, and more.`
+vantage reports what an organisation exposes to someone looking at it, and
+what that exposure would cost. It assesses mail authentication (SPF, DKIM,
+DMARC), delegation and DNSSEC, certificate issuance policy, the hostnames
+certificates have already published, subdomain takeover, and which providers
+and jurisdictions the infrastructure actually resolves into.
+
+Assessments are made from a vantage point, set with 'vantage audit --from'.
+Only the external vantage — the public internet, with no privileged position
+and no credentials — is implemented today.
+
+Most evidence comes from DNS, which answers everybody. Certificate
+Transparency logs and provider address ranges are also consulted, and the
+egress each check makes is declared: see 'vantage audit --list-checks'.`
 
 	if err := rootCmd.Execute(); err != nil {
 		exit(err)

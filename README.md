@@ -38,7 +38,7 @@ required.
 
 ## Install
 
-**Homebrew** (macOS and Linux)
+**macOS and Linux — Homebrew**
 
 ```sh
 brew install adedayo/tap/vantage
@@ -46,17 +46,65 @@ brew install adedayo/tap/vantage
 
 Upgrade with `brew upgrade vantage`.
 
+**Windows — winget**
+
+```powershell
+winget install adedayo.vantage
+```
+
+**Linux — distribution packages**
+
+`.deb`, `.rpm`, `.apk` and Arch packages are attached to every release, so the
+binary is installed and removed by your package manager rather than left on
+`PATH` by hand. Substitute the version and your architecture (`amd64` or
+`arm64`):
+
+```sh
+VERSION=1.1.0
+ARCH=amd64
+BASE="https://github.com/adedayo/vantage/releases/download/v${VERSION}"
+
+# Debian, Ubuntu
+curl -fsSLO "${BASE}/vantage_${VERSION}_linux_${ARCH}.deb"
+sudo dpkg -i "vantage_${VERSION}_linux_${ARCH}.deb"
+
+# Fedora, RHEL, openSUSE
+sudo rpm -i "vantage_${VERSION}_linux_${ARCH}.rpm"
+
+# Alpine
+sudo apk add --allow-untrusted "vantage_${VERSION}_linux_${ARCH}.apk"
+
+# Arch
+sudo pacman -U "vantage_${VERSION}_linux_${ARCH}.pkg.tar.zst"
+```
+
+**Docker**
+
+```sh
+docker run --rm ghcr.io/adedayo/vantage:latest audit example.com
+```
+
+The image is `distroless`, so it has no shell — `docker run ... sh` will not
+work, by design. Provider ranges and Certificate Transparency results are
+cached inside the container and lost when it exits; mount a volume to keep
+them between runs:
+
+```sh
+docker run --rm -v vantage-cache:/home/nonroot/.cache/vantage \
+  ghcr.io/adedayo/vantage:latest audit example.com
+```
+
+Images are published for `linux/amd64` and `linux/arm64`. Tags are `latest`,
+the version (`1.1.0`) and the tag (`v1.1.0`).
+
 **Direct download**
 
-Download a binary for your platform from the
-[latest release](https://github.com/adedayo/vantage/releases/latest). Every
-release ships signed checksums and an SBOM alongside the archives.
-
-**macOS and Linux**
+Binaries for every platform, with signed checksums and an SBOM, are on the
+[latest release](https://github.com/adedayo/vantage/releases/latest).
 
 ```sh
 # Pick the archive matching your platform, e.g. darwin_arm64, linux_amd64.
-VERSION=1.0.1
+VERSION=1.1.0
 PLATFORM=darwin_arm64
 
 curl -fsSLO "https://github.com/adedayo/vantage/releases/download/v${VERSION}/vantage_${VERSION}_${PLATFORM}.tar.gz"
@@ -73,12 +121,11 @@ vantage version
 
 On macOS the binary is not notarised, so Gatekeeper will quarantine a download
 made through a browser. Fetching it with `curl` as above avoids that; otherwise
-clear the attribute with `xattr -d com.apple.quarantine vantage`.
+clear the attribute with `xattr -d com.apple.quarantine vantage`. The Homebrew
+cask does this for you.
 
-**Windows**
-
-Download `vantage_<version>_windows_amd64.zip` (or `windows_arm64`), extract it
-and put `vantage.exe` somewhere on your `PATH`.
+On Windows, download `vantage_<version>_windows_amd64.zip` (or `windows_arm64`),
+extract it and put `vantage.exe` somewhere on your `PATH`.
 
 **With Go**
 
@@ -90,7 +137,7 @@ go install github.com/adedayo/vantage@latest
 ```
 
 This puts `vantage` in `$(go env GOPATH)/bin`, which needs to be on your `PATH`.
-Use `@v1.0.1` in place of `@latest` to pin a version.
+Use `@v1.1.0` in place of `@latest` to pin a version.
 
 > Installing the command is not the same as depending on the Go packages. See
 > [Compatibility](#compatibility) — the CLI is the supported surface; `pkg/` is
@@ -119,6 +166,25 @@ Use `@v1.0.1` in place of `@latest` to pin a version.
 | `catalogue` | List every finding vantage can report |
 | `explain <finding-id>` | Explain a finding and how to fix it |
 | `version` | Version, commit, build date and platform (also `--version`) |
+
+## Vantage points
+
+An assessment is made *from* somewhere, and what is exposed depends on where
+the observer stands. `vantage audit --from` names that position:
+
+```sh
+vantage audit example.com --from external   # the default
+```
+
+| Vantage | Meaning | Status |
+|---|---|---|
+| `external` | The public internet, with no privileged position and no credentials | Implemented |
+| `internal` | What is exposed to someone who has already reached an internal network | Not yet implemented |
+
+`internal` is recognised but rejected, so asking for it tells you the
+capability is absent rather than that you mistyped. It is not listed in
+`--help`, because advertising a value that cannot run would be a false
+promise.
 
 ## Findings and reporting
 

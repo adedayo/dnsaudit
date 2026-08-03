@@ -51,6 +51,39 @@ checksum:
 sboms:
   - artifacts: archive
 
+# Native Linux packages. These attach to the GitHub release like any other
+# artefact, so `dpkg -i` / `rpm -i` / `apk add` work from a downloaded file
+# without standing up an apt or yum repository. Users get a managed install
+# — man-page location, clean uninstall, package database entry — rather than
+# a tarball they have to place on PATH themselves.
+nfpms:
+  - id: packages
+    ids:
+      - vantage
+    package_name: vantage
+    vendor: Adedayo Adetoye
+    homepage: "https://github.com/adedayo/vantage"
+    maintainer: "Dr. Adedayo Adetoye (Dayo) <https://github.com/adedayo>"
+    description: |-
+      See what an attacker sees.
+      vantage audits the attack surface an organisation exposes, from the
+      vantage point of someone looking at it.
+    license: BSD-3-Clause
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+    bindir: /usr/bin
+    # No runtime dependencies are declared because the binary is static:
+    # builds set CGO_ENABLED=0, and resolver discovery reads /etc/resolv.conf
+    # directly rather than through libc.
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/vantage/LICENSE
+      - src: README.md
+        dst: /usr/share/doc/vantage/README.md
+
 # Homebrew. A Cask rather than a Formula: GoReleaser soft-deprecated `brews`
 # in v2.10 and formally deprecated it in v2.16, because Formulas that install
 # pre-compiled binaries were always a workaround and Homebrew now expects
@@ -122,6 +155,89 @@ homebrew_casks:
     zap:
       trash:
         - "~/Library/Caches/vantage"
+
+# Container images, published to GitHub Container Registry alongside the
+# release. `dockers_v2` rather than `dockers`: the latter is deprecated and
+# will be replaced by this in GoReleaser v3.
+#
+# Note that these are built during the *publish* phase, not the build phase,
+# because buildx cannot assemble a multi-platform manifest without pushing
+# it. A release run with --skip=publish therefore builds no images.
+dockers_v2:
+  - id: ghcr
+    ids:
+      - vantage
+    images:
+      - "ghcr.io/adedayo/vantage"
+    tags:
+      - "{{ .Version }}"
+      - "v{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    # Skipped when the registry cannot be written to, so that a release still
+    # publishes everything else rather than failing at the last step.
+    disable: '{{ if index .Env "GITHUB_TOKEN" }}false{{ else }}true{{ end }}'
+    annotations:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.description": "See what an attacker sees: audit the attack surface an organisation exposes."
+      "org.opencontainers.image.url": "https://github.com/adedayo/vantage"
+      "org.opencontainers.image.source": "https://github.com/adedayo/vantage"
+      "org.opencontainers.image.version": "{{ .Version }}"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+      "org.opencontainers.image.created": "{{ .Date }}"
+      "org.opencontainers.image.licenses": "BSD-3-Clause"
+
+# Windows Package Manager. Unlike Homebrew, winget has a single central
+# repository — microsoft/winget-pkgs — and publishing means opening a pull
+# request against it, which is then validated and merged by Microsoft's
+# automation. That requires a fork of winget-pkgs under this account, and a
+# token that can push to it and open pull requests.
+#
+# Because the fork and token are prerequisites that may not be in place, the
+# whole pipe is skipped when the token is absent rather than failing the
+# release. The first successful run opens a PR; it is not merged
+# automatically, and the package appears in winget only once Microsoft
+# accepts it.
+winget:
+  - name: vantage
+    package_identifier: adedayo.vantage
+    publisher: Adedayo Adetoye
+    publisher_url: "https://github.com/adedayo"
+    publisher_support_url: "https://github.com/adedayo/vantage/issues/new"
+    homepage: "https://github.com/adedayo/vantage"
+    license: BSD-3-Clause
+    license_url: "https://github.com/adedayo/vantage/blob/main/LICENSE"
+    copyright: "Copyright (c) Adedayo Adetoye"
+    short_description: "See what an attacker sees: audit the attack surface an organisation exposes."
+    description: |-
+      vantage reports what an organisation exposes to someone looking at it,
+      and what that exposure would cost. It assesses mail authentication,
+      delegation and DNSSEC, certificate issuance policy, hostnames published
+      in Certificate Transparency logs, subdomain takeover, and which
+      providers and jurisdictions the infrastructure resolves into.
+    tags:
+      - security
+      - dns
+      - attack-surface
+      - golang
+      - cli
+    skip_upload: '{{ if index .Env "WINGET_GITHUB_TOKEN" }}false{{ else }}true{{ end }}'
+    repository:
+      owner: adedayo
+      name: winget-pkgs
+      branch: "vantage-{{ .Version }}"
+      # Must be exactly `{{ .Env.VAR }}`; GoReleaser validates this field for
+      # that shape specifically, as the Homebrew token above does.
+      token: "{{ .Env.WINGET_GITHUB_TOKEN }}"
+      pull_request:
+        enabled: true
+        draft: false
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
