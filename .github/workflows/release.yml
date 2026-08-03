@@ -67,9 +67,15 @@ jobs:
           HOMEBREW_GITHUB_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN || secrets.PAT_TOKEN }}
           # Publishing to winget means opening a pull request against
           # microsoft/winget-pkgs from a fork under this account. That needs a
-          # PAT with contents:write on the fork and permission to open pull
-          # requests; the default GITHUB_TOKEN can do neither.
+          # PAT with contents:write and pull-requests:write on the fork; the
+          # default GITHUB_TOKEN can do neither.
           #
-          # When unset, .goreleaser.yml skips the winget pipe rather than
-          # failing the release.
-          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN || secrets.PAT_TOKEN }}
+          # HOMEBREW_GITHUB_TOKEN is the last fallback because the fine-grained
+          # token behind it covers both adedayo/homebrew-tap and
+          # adedayo/winget-pkgs. One token, one expiry to track. Setting
+          # WINGET_GITHUB_TOKEN separately later takes precedence and splits
+          # the two publishing paths without touching this file.
+          #
+          # When none are set this is empty, and .goreleaser.yml skips the
+          # winget pipe rather than failing the release.
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN || secrets.PAT_TOKEN || secrets.HOMEBREW_GITHUB_TOKEN }}
